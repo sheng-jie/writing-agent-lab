@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/WritingAgent.Api/WritingAgent.Api.csproj" />
+    <Project Path="src/backend/WritingAgent.Console/WritingAgent.Console.csproj" />
+  </Folder>
+</Solution>
