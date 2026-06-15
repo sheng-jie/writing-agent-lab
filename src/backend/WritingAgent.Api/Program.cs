@@ -1,4 +1,7 @@
+using System.ComponentModel;
 using System.ClientModel;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
@@ -13,6 +16,12 @@ builder.Services.AddOpenApi();
 
 // 注册 AG-UI 所需服务，后面才能通过 MapAGUI 暴露 Agent。
 builder.Services.AddAGUI();
+
+// Tavily Search 工具使用命名 HttpClient，API Key 仍从后端环境变量读取。
+builder.Services.AddHttpClient("tavily", client =>
+{
+    client.BaseAddress = new Uri("https://api.tavily.com/");
+});
 
 // 使用 MEAI 的 AddChatClient 注册 IChatClient，而不是手动注册单例。
 builder.Services.AddChatClient(_ =>
@@ -39,33 +48,75 @@ builder.Services.AddChatClient(_ =>
 // 这样 Agent 可以从 DI 中解析模型客户端，而不是我们手动 new 或直接注册单例实例。
 
 // 使用 MAF Hosting 的 AddAIAgent 注册 Agent，其会自动从 DI 解析默认的 IChatClient 并注入到 Agent 中。
+const string ClarificationInstruction = """
+        你是写作工作流中的 Clarification Agent。
+
+        你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
+
+        你不生成候选选题，不做正式研究，不写正文。
+
+        如果用户输入里出现陌生产品名、缩写、行业术语或近期趋势，且这些信息会影响澄清判断，可以先调用 TavilySearchAsync 快速理解一次。
+        搜索只用于内部判断，不做正式研究。
+        如果搜索工具提示未配置 API Key，不要编造最新事实；继续基于用户已提供的信息做澄清。
+
+        需要澄清时，优先调用名为 clarification 的前端工具。不要用纯文本 JSON 代替。
+
+        clarification 工具参数必须符合这个最小结构：
+        {
+            "type": "Clarification",
+            "version": "2.0",
+            "questions": [
+                {
+                    "id": "audience",
+                    "kind": "single_choice",
+                    "title": "这篇文章主要写给谁看？",
+                    "options": [
+                        { "id": "developer", "label": "一线开发者" },
+                        { "id": "manager", "label": "技术团队负责人" }
+                    ]
+                }
+            ]
+        }
+
+        一次问 2-4 个关键问题。优先澄清这些维度：目标读者、核心问题、核心立场、内容边界、发布场景、风格倾向、证据要求。
+
+        信息足够后，输出固定 Markdown 模板：
+
+        ## Writing Brief
+        - 写作目标：
+        - 目标读者：
+        - 核心问题：
+        - 核心立场：
+        - 内容边界：写……；不写……
+        - 证据要求：
+        - 风格倾向：
+        - 成功标准：
+        """;
 
 builder.Services.AddAIAgent(
-    name: "ClarificationAgent",
-    instructions: """
-                你是写作工作流中的 Clarification Agent。
+    "ClarificationAgent",
+    (sp, name) =>
+    {
+        var chatClient = sp.GetRequiredService<IChatClient>();
+        var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+        var tavilyApiKey = Environment.GetEnvironmentVariable("TAVILY_API_KEY");
 
-                你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
+        [Description("快速搜索写作请求中的陌生概念、产品名、缩写或近期背景")]
+        Task<string> TavilySearchAsync(
+            [Description("搜索关键词，应该简洁具体")] string query)
+        {
+            var httpClient = httpClientFactory.CreateClient("tavily");
+            return SearchTavilyAsync(httpClient, tavilyApiKey, query);
+        }
 
-                你不生成候选选题，不做正式研究，不写正文。
-
-                如果缺少会明显影响后续选题、搜索或写作结构的信息，先用自然语言一次提出 2-4 个关键问题。
-
-                优先澄清这些维度：目标读者、核心问题、核心立场、内容边界、发布场景、风格倾向、证据要求。
-
-                写作目标足够明确后，输出固定 Markdown 模板：
-
-                ## Writing Brief
-                - 写作目标：
-                - 目标读者：
-                - 核心问题：
-                - 核心立场：
-                - 内容边界：写……；不写……
-                - 证据要求：
-                - 风格倾向：
-                - 成功标准：
-                """
-                );
+        return chatClient.AsAIAgent(
+            name: name,
+            instructions: ClarificationInstruction,
+            tools:
+            [
+                AIFunctionFactory.Create(TavilySearchAsync)
+            ]);
+    });
 
 var app = builder.Build();
 
@@ -99,6 +150,41 @@ app.MapPost("/api/writing/chat", async (
 app.MapAGUI(agentName: "ClarificationAgent", pattern: "/agui/agents/clarification-agent");
 
 app.Run();
+
+static async Task<string> SearchTavilyAsync(HttpClient httpClient, string? apiKey, string query)
+{
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        return "未配置 TAVILY_API_KEY，无法执行真实搜索。";
+    }
+
+    var response = await httpClient.PostAsJsonAsync("search", new
+    {
+        api_key = apiKey,
+        query,
+        search_depth = "basic",
+        include_answer = true,
+        max_results = 3
+    });
+
+    var json = await response.Content.ReadAsStringAsync();
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return $"Tavily 搜索失败：{json}";
+    }
+
+    using var document = JsonDocument.Parse(json);
+    var root = document.RootElement;
+
+    if (root.TryGetProperty("answer", out var answer))
+    {
+        Console.WriteLine($"========={answer.GetString()}==========");
+        return answer.GetString() ?? "Tavily 没有返回摘要。";
+    }
+
+    return "Tavily 没有返回摘要。";
+}
 
 // 最小请求/响应 DTO，后续课程再考虑移动到 Contracts 项目。
 public sealed record WritingChatRequest(string Message);
