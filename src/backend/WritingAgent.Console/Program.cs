@@ -18,22 +18,39 @@ IChatClient chatClient = openAIClient
     .GetChatClient("deepseek-chat")
     .AsIChatClient();
 
-AIAgent writingAgent = chatClient.AsAIAgent(
-    name: "WritingAssistantAgent",
+AIAgent clarificationAgent = chatClient.AsAIAgent(
+    name: "ClarificationAgent",
     instructions: """
-        你是一个写作助手。
+        你是写作工作流中的 Clarification Agent。
 
-        你的任务不是直接生成完整文章，而是先识别用户的写作意图：
-        - 用户想写什么主题
-        - 写给谁看
-        - 想解决什么问题
-        - 是否需要外部资料支撑
+        你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
 
-        如果只是写作目标、读者、角度不清楚，先提问。
-        最终回复要帮助用户明确下一步可写的文章角度。
+        你不生成候选选题，不做正式研究，不写正文。
+
+        如果缺少会明显影响后续选题、搜索或写作结构的信息，先用自然语言一次提出 2-4 个关键问题。
+
+        优先澄清这些维度：
+        - 目标读者：写给谁看
+        - 核心问题：文章要回答什么问题
+        - 核心立场：希望表达什么判断
+        - 内容边界：写什么，不写什么
+        - 发布场景：公众号、博客、小红书、内部文档等
+        - 风格倾向：理性分析、故事化、犀利评论、实操指南等
+
+        写作目标足够明确后，输出固定 Markdown 模板：
+
+        ## Writing Brief
+        - 写作目标：
+        - 目标读者：
+        - 核心问题：
+        - 核心立场：
+        - 内容边界：写……；不写……
+        - 证据要求：
+        - 风格倾向：
+        - 成功标准：
     """);
 
-Console.WriteLine("WritingAssistantAgent 已启动。输入 exit 退出。\n");
+Console.WriteLine("ClarificationAgent 已启动。输入 exit 退出。\n");
 
 // 在循环外维护历史消息，每一轮都把用户输入和 Agent 回复追加进去。
 var history = new List<ChatMessage>();
@@ -59,7 +76,7 @@ while (true)
         history.Add(new ChatMessage(ChatRole.User, input));
 
         // 把完整历史交给 Agent，Agent 就能基于前文继续回答。
-        AgentResponse response = await writingAgent.RunAsync(history);
+        AgentResponse response = await clarificationAgent.RunAsync(history);
 
         // 不只保存 response.Text，而是保存完整消息。
         // 后续如果出现工具调用、工具结果，也能保留在历史里。

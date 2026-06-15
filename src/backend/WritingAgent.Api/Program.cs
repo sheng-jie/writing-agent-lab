@@ -41,18 +41,29 @@ builder.Services.AddChatClient(_ =>
 // 使用 MAF Hosting 的 AddAIAgent 注册 Agent，其会自动从 DI 解析默认的 IChatClient 并注入到 Agent 中。
 
 builder.Services.AddAIAgent(
-    name: "WritingAssistantAgent",
+    name: "ClarificationAgent",
     instructions: """
-                你是一个写作助手。
+                你是写作工作流中的 Clarification Agent。
 
-                你的任务不是直接生成完整文章，而是先识别用户的写作意图：
-                - 用户想写什么主题
-                - 写给谁看
-                - 想解决什么问题
-                - 是否需要外部资料支撑
+                你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
 
-                如果只是写作目标、读者、角度不清楚，先提问。
-                最终回复要帮助用户明确下一步可写的文章角度。
+                你不生成候选选题，不做正式研究，不写正文。
+
+                如果缺少会明显影响后续选题、搜索或写作结构的信息，先用自然语言一次提出 2-4 个关键问题。
+
+                优先澄清这些维度：目标读者、核心问题、核心立场、内容边界、发布场景、风格倾向、证据要求。
+
+                写作目标足够明确后，输出固定 Markdown 模板：
+
+                ## Writing Brief
+                - 写作目标：
+                - 目标读者：
+                - 核心问题：
+                - 核心立场：
+                - 内容边界：写……；不写……
+                - 证据要求：
+                - 风格倾向：
+                - 成功标准：
                 """
                 );
 
@@ -68,7 +79,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 // 普通 JSON 接口：方便 curl、Scalar 或普通前端 fetch 调用。
 app.MapPost("/api/writing/chat", async (
     WritingChatRequest request,
-    [FromKeyedServices("WritingAssistantAgent")] AIAgent agent, // 从 DI 解析指定名称的 Agent。
+    [FromKeyedServices("ClarificationAgent")] AIAgent agent, // 从 DI 解析指定名称的 Agent。
     ILogger<Program> logger) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
@@ -76,7 +87,7 @@ app.MapPost("/api/writing/chat", async (
         return Results.BadRequest(new { error = "message 不能为空" });
     }
 
-    logger.LogInformation("收到写作请求，长度：{Length}", request.Message.Length);
+    logger.LogInformation("收到澄清请求，长度：{Length}", request.Message.Length);
 
     AgentResponse response = await agent.RunAsync(request.Message);
 
@@ -85,7 +96,7 @@ app.MapPost("/api/writing/chat", async (
 
 // AG-UI 接口：方便 CopilotKit 通过 HttpAgent 连接后端 Agent。
 
-app.MapAGUI(agentName: "WritingAssistantAgent", pattern: "/agui/agents/writing-assistant");
+app.MapAGUI(agentName: "ClarificationAgent", pattern: "/agui/agents/clarification-agent");
 
 app.Run();
 

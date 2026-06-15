@@ -8,9 +8,9 @@ const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5678
 // 注册一个 CopilotKit Agent，内部通过 AG-UI HttpAgent 连接 .NET 后端。
 const runtime = new CopilotRuntime({
   agents: {
-    writingAssistant: new HttpAgent({
+    clarificationAgent: new HttpAgent({
       // 这个地址对应后端 app.MapAGUI 暴露的 Agent endpoint。
-      url: `${backendUrl}/agui/agents/writing-assistant`,
+      url: `${backendUrl}/agui/agents/clarification-agent`,
     }),
   },
 });
