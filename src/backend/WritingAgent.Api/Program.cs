@@ -1,3 +1,5 @@
+#pragma warning disable MAAI001
+
 using System.ComponentModel;
 using System.ClientModel;
 using System.Net.Http.Json;
@@ -8,6 +10,7 @@ using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.Extensions.AI;
 using OpenAI;
 using Scalar.AspNetCore;
+using WritingAgent.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,49 +52,20 @@ builder.Services.AddChatClient(_ =>
 
 // 使用 MAF Hosting 的 AddAIAgent 注册 Agent，其会自动从 DI 解析默认的 IChatClient 并注入到 Agent 中。
 const string ClarificationInstruction = """
-        你是写作工作流中的 Clarification Agent。
+    你是写作工作流中的 ClarificationAgent。
 
-        你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
+    你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的 Writing Brief。
+    你不生成搜索指引，不做正式研究，不写正文。
 
-        你不生成候选选题，不做正式研究，不写正文。
+    当需要判断写作意图是否足够、应该追问哪些问题、Brief 输出格式是什么时，
+    优先使用 writing-brief-skill。
 
-        如果用户输入里出现陌生产品名、缩写、行业术语或近期趋势，且这些信息会影响澄清判断，可以先调用 TavilySearchAsync 快速理解一次。
-        搜索只用于内部判断，不做正式研究。
-        如果搜索工具提示未配置 API Key，不要编造最新事实；继续基于用户已提供的信息做澄清。
+    如果判断信息已经足够，直接输出 Writing Brief，不要为了补全细节而继续调用工具追问。
 
-        需要澄清时，优先调用名为 clarification 的前端工具。不要用纯文本 JSON 代替。
+    需要追问时，优先调用名为 clarification 的前端工具。
+    遇到陌生概念时，可以调用 TavilySearchAsync 快速理解背景。
+    """;
 
-        clarification 工具参数必须符合这个最小结构：
-        {
-            "type": "Clarification",
-            "version": "2.0",
-            "questions": [
-                {
-                    "id": "audience",
-                    "kind": "single_choice",
-                    "title": "这篇文章主要写给谁看？",
-                    "options": [
-                        { "id": "developer", "label": "一线开发者" },
-                        { "id": "manager", "label": "技术团队负责人" }
-                    ]
-                }
-            ]
-        }
-
-        一次问 2-4 个关键问题。优先澄清这些维度：目标读者、核心问题、核心立场、内容边界、发布场景、风格倾向、证据要求。
-
-        信息足够后，输出固定 Markdown 模板：
-
-        ## Writing Brief
-        - 写作目标：
-        - 目标读者：
-        - 核心问题：
-        - 核心立场：
-        - 内容边界：写……；不写……
-        - 证据要求：
-        - 风格倾向：
-        - 成功标准：
-        """;
 
 builder.Services.AddAIAgent(
     "ClarificationAgent",
@@ -109,13 +83,28 @@ builder.Services.AddAIAgent(
             return SearchTavilyAsync(httpClient, tavilyApiKey, query);
         }
 
-        return chatClient.AsAIAgent(
-            name: name,
-            instructions: ClarificationInstruction,
-            tools:
+        var writingBriefSkill = WritingBriefSkillFactory.Create();
+        var skillsProvider = new AgentSkillsProvider(writingBriefSkill);
+
+        var agentOptions = new ChatClientAgentOptions
+        {
+            Name = name,
+            Description = "把模糊写作想法澄清成 Writing Brief 的 Agent",
+            ChatOptions = new ChatOptions
+            {
+                Instructions = ClarificationInstruction,
+                Tools =
+                [
+                    AIFunctionFactory.Create(TavilySearchAsync)
+                ]
+            },
+            AIContextProviders =
             [
-                AIFunctionFactory.Create(TavilySearchAsync)
-            ]);
+                skillsProvider
+            ]
+        };
+
+        return chatClient.AsAIAgent(agentOptions);
     });
 
 var app = builder.Build();
