@@ -12,5 +12,6 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.16.3" />
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.10.0-preview.260610.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.10.0-preview.260610.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Tools.Shell" Version="1.8.0-preview.260528.1" />
   </ItemGroup>
 </Project>
