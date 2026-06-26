@@ -1,0 +1,1534 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowDraft｜自媒体写作工作台</title>
+  <style>
+    :root {
+      --bg: oklch(98% 0.006 185);
+      --surface: oklch(100% 0 0);
+      --surface-soft: oklch(96.5% 0.012 180);
+      --fg: oklch(19% 0.025 210);
+      --muted: oklch(48% 0.022 220);
+      --muted-2: oklch(63% 0.018 220);
+      --border: oklch(89% 0.011 190);
+      --accent: oklch(52% 0.115 166);
+      --accent-strong: oklch(42% 0.12 166);
+      --accent-soft: oklch(92% 0.045 166);
+      --gold: oklch(74% 0.13 78);
+      --gold-soft: oklch(94% 0.052 82);
+      --ink: oklch(24% 0.035 245);
+      --danger: oklch(58% 0.17 30);
+      --ok: oklch(56% 0.13 152);
+      --shadow: 0 24px 70px rgba(16, 39, 44, 0.11);
+      --shadow-soft: 0 14px 38px rgba(16, 39, 44, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --font-display: "Söhne", "Avenir Next", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      --font-serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --font-mono: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 0%, color-mix(in oklch, var(--accent-soft) 72%, transparent) 0 22rem, transparent 42rem),
+        radial-gradient(circle at 88% 18%, color-mix(in oklch, var(--gold-soft) 64%, transparent) 0 18rem, transparent 40rem),
+        var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: color-mix(in oklch, var(--bg) 82%, transparent);
+      border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+    }
+
+    .nav {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-weight: 760;
+      letter-spacing: -0.03em;
+      font-size: 20px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background:
+        linear-gradient(135deg, var(--accent), var(--gold));
+      position: relative;
+      box-shadow: 0 12px 28px color-mix(in oklch, var(--accent) 26%, transparent);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: 9px 8px;
+      border-radius: 7px 7px 2px 7px;
+      background: rgba(255,255,255,.88);
+      clip-path: polygon(0 0, 100% 0, 100% 72%, 58% 72%, 45% 100%, 35% 72%, 0 72%);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 620;
+    }
+
+    .nav-links a:hover { color: var(--fg); }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-weight: 740;
+      letter-spacing: -0.01em;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+      box-shadow: 0 14px 30px color-mix(in oklch, var(--accent) 28%, transparent);
+    }
+
+    .btn-primary:hover { box-shadow: 0 18px 38px color-mix(in oklch, var(--accent) 34%, transparent); }
+
+    .btn-secondary {
+      color: var(--fg);
+      background: color-mix(in oklch, var(--surface) 88%, transparent);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+
+    .mobile-toggle {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg);
+    }
+
+    .hero {
+      position: relative;
+      padding: 86px 0 72px;
+      overflow: hidden;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(430px, .98fr);
+      gap: 56px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid color-mix(in oklch, var(--accent) 26%, var(--border));
+      border-radius: 999px;
+      background: color-mix(in oklch, var(--accent-soft) 62%, white);
+      color: var(--accent-strong);
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 16%, transparent);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      margin-top: 24px;
+      font-family: var(--font-display);
+      font-size: clamp(48px, 7vw, 86px);
+      line-height: .94;
+      letter-spacing: -0.065em;
+      text-wrap: balance;
+    }
+
+    .hero h1 em {
+      font-family: var(--font-serif);
+      font-style: italic;
+      letter-spacing: -0.055em;
+      color: var(--accent-strong);
+      white-space: nowrap;
+    }
+
+    .lead {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: clamp(18px, 2vw, 22px);
+      line-height: 1.65;
+      max-width: 650px;
+      text-wrap: pretty;
+    }
+
+    .hero-actions {
+      margin-top: 34px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .micro-proof {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .micro-proof span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: color-mix(in oklch, var(--surface) 78%, transparent);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    .product-card {
+      position: relative;
+      border-radius: 34px;
+      background: color-mix(in oklch, var(--surface) 92%, transparent);
+      border: 1px solid color-mix(in oklch, var(--border) 85%, white);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      transform: rotate(1deg);
+    }
+
+    .product-card::before {
+      content: "";
+      position: absolute;
+      inset: -18px;
+      border-radius: 42px;
+      background: linear-gradient(135deg, color-mix(in oklch, var(--accent) 18%, transparent), color-mix(in oklch, var(--gold) 14%, transparent));
+      z-index: -1;
+      filter: blur(2px);
+    }
+
+    .app-window {
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      min-height: 590px;
+    }
+
+    .window-bar {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: color-mix(in oklch, var(--surface-soft) 62%, white);
+    }
+
+    .traffic { display: flex; gap: 7px; }
+    .traffic i {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: block;
+      background: var(--border);
+    }
+    .traffic i:nth-child(1) { background: oklch(72% 0.13 35); }
+    .traffic i:nth-child(2) { background: oklch(78% 0.12 85); }
+    .traffic i:nth-child(3) { background: oklch(69% 0.13 155); }
+
+    .status-pill {
+      color: var(--muted);
+      font: 12px/1 var(--font-mono);
+      letter-spacing: .02em;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid var(--border);
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: 154px minmax(0, 1fr);
+      min-height: 540px;
+    }
+
+    .rail {
+      border-right: 1px solid var(--border);
+      background: oklch(98% 0.005 190);
+      padding: 18px 12px;
+    }
+
+    .rail-title {
+      font-size: 11px;
+      color: var(--muted-2);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-family: var(--font-mono);
+      margin-bottom: 12px;
+    }
+
+    .rail button {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      border-radius: 13px;
+      padding: 11px 10px;
+      color: var(--muted);
+      font-weight: 670;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .rail button.active {
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+    }
+
+    .rail button small {
+      color: var(--muted-2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .editor {
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    .doc-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .doc-head h3 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .doc-head p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .quality {
+      display: grid;
+      gap: 8px;
+      min-width: 138px;
+    }
+
+    .quality-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font: 12px/1 var(--font-mono);
+      color: var(--muted);
+    }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .meter > span {
+      display: block;
+      height: 100%;
+      width: 72%;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      border-radius: inherit;
+      transition: width .35s ease;
+    }
+
+    .paper {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: white;
+      padding: 22px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .paper .kicker {
+      font: 12px/1 var(--font-mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .paper h4 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 27px;
+      letter-spacing: -0.045em;
+      line-height: 1.16;
+    }
+
+    .paper p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .suggestions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .chip-card {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      border-radius: 14px;
+      padding: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .section {
+      padding: 88px 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, .75fr) minmax(280px, .45fr);
+      gap: 36px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .section-kicker {
+      color: var(--accent-strong);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-size: 12px;
+      font-weight: 760;
+      margin-bottom: 13px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(34px, 4.8vw, 58px);
+      line-height: 1;
+      letter-spacing: -0.055em;
+      text-wrap: balance;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 17px;
+      text-wrap: pretty;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 22px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      border: 1px solid var(--border);
+      background: color-mix(in oklch, var(--surface) 86%, transparent);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 13px;
+      transition: border-color .18s, background .18s, transform .18s, box-shadow .18s;
+    }
+
+    .step:hover { transform: translateY(-1px); }
+    .step.active {
+      border-color: color-mix(in oklch, var(--accent) 42%, var(--border));
+      background: color-mix(in oklch, var(--accent-soft) 70%, white);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .num {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--accent-strong);
+      font-family: var(--font-mono);
+      font-weight: 800;
+    }
+
+    .step strong {
+      display: block;
+      letter-spacing: -0.025em;
+      margin-bottom: 4px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .workflow-panel {
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+      padding: 28px;
+      min-height: 584px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .workflow-panel::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -90px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: color-mix(in oklch, var(--gold) 18%, transparent);
+      filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .panel-top {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      gap: 22px;
+      align-items: flex-start;
+      z-index: 1;
+    }
+
+    .panel-top h3 {
+      font-family: var(--font-display);
+      font-size: 34px;
+      letter-spacing: -0.045em;
+      line-height: 1.08;
+      margin-bottom: 10px;
+    }
+
+    .panel-top p {
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 560px;
+    }
+
+    .stage-tag {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      font: 12px/1 var(--font-mono);
+      letter-spacing: .08em;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .module {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: color-mix(in oklch, var(--surface-soft) 58%, white);
+      padding: 18px;
+    }
+
+    .module h4 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+
+    .module ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .module li {
+      display: flex;
+      gap: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .check {
+      margin-top: 4px;
+      width: 15px;
+      height: 15px;
+      border-radius: 5px;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in oklch, var(--accent) 28%, var(--border));
+      flex: 0 0 auto;
+      position: relative;
+    }
+
+    .check::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid var(--accent-strong);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .before-after {
+      display: grid;
+      gap: 12px;
+    }
+
+    .quote-box {
+      border-radius: 16px;
+      padding: 14px;
+      background: white;
+      border: 1px solid var(--border);
+    }
+
+    .quote-box small {
+      color: var(--muted-2);
+      font: 11px/1 var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .quote-box p {
+      margin-top: 8px;
+      color: var(--fg);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .panel-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      min-height: 250px;
+      box-shadow: 0 10px 26px rgba(16, 39, 44, .04);
+    }
+
+    .feature-card.wide {
+      grid-column: span 2;
+      background:
+        linear-gradient(135deg, color-mix(in oklch, var(--accent-soft) 62%, white), white 55%),
+        var(--surface);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      color: var(--accent-strong);
+      font-family: var(--font-mono);
+      font-weight: 800;
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .scenario {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .scenario-card {
+      border-radius: var(--radius-xl);
+      background: var(--ink);
+      color: white;
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+      min-height: 420px;
+    }
+
+    .scenario-card::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      right: -160px;
+      bottom: -160px;
+      background: color-mix(in oklch, var(--accent) 38%, transparent);
+    }
+
+    .scenario-card h3 {
+      font-family: var(--font-display);
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .scenario-card p {
+      margin-top: 18px;
+      color: rgba(255,255,255,.72);
+      line-height: 1.7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .scenario-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .audience-row {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: color-mix(in oklch, var(--surface) 88%, transparent);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .audience-row strong {
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: -0.035em;
+    }
+
+    .audience-row p {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .cta {
+      padding: 96px 0 110px;
+    }
+
+    .cta-card {
+      border-radius: 36px;
+      border: 1px solid color-mix(in oklch, var(--accent) 22%, var(--border));
+      background:
+        radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--accent) 18%, transparent) 0 18rem, transparent 34rem),
+        linear-gradient(135deg, white, color-mix(in oklch, var(--surface-soft) 78%, white));
+      padding: 48px;
+      display: grid;
+      grid-template-columns: 1fr 430px;
+      gap: 38px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .cta h2 { max-width: 720px; }
+    .cta p {
+      margin-top: 18px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 18px;
+      max-width: 660px;
+    }
+
+    .waitlist {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 13px 14px;
+      outline: 0;
+      color: var(--fg);
+      background: var(--surface);
+      transition: border-color .15s, box-shadow .15s;
+      min-height: 48px;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 92px;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: color-mix(in oklch, var(--accent) 58%, var(--border));
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 14%, transparent);
+    }
+
+    .form-note {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .form-note.ok { color: var(--ok); }
+    .form-note.error { color: var(--danger); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .section-head,
+      .workflow,
+      .scenario,
+      .cta-card {
+        grid-template-columns: 1fr;
+      }
+
+      .hero { padding-top: 56px; }
+      .product-card { transform: none; }
+      .features { grid-template-columns: 1fr 1fr; }
+      .feature-card.wide { grid-column: span 1; }
+      .cta-card { padding: 34px; }
+    }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 28px, 1180px); }
+      .nav-links, .nav-actions { display: none; }
+      .mobile-toggle { display: grid; place-items: center; }
+      .topbar.open .nav-links {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        top: 72px;
+        display: grid;
+        gap: 4px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 12px;
+        box-shadow: var(--shadow-soft);
+      }
+      .topbar.open .nav-links a {
+        padding: 12px;
+        border-radius: 12px;
+      }
+      .topbar.open .nav-links a:hover { background: var(--surface-soft); }
+      h1 { font-size: clamp(44px, 15vw, 68px); }
+      .hero-grid { gap: 34px; }
+      .workbench { grid-template-columns: 1fr; }
+      .rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 6px;
+        overflow-x: auto;
+      }
+      .rail-title { grid-column: 1 / -1; }
+      .suggestions, .module-grid, .features { grid-template-columns: 1fr; }
+      .workflow-panel { padding: 20px; }
+      .panel-top, .panel-foot { flex-direction: column; align-items: flex-start; }
+      .audience-row { grid-template-columns: 1fr; }
+      .section { padding: 64px 0; }
+      .cta { padding: 66px 0 76px; }
+      .cta-card { padding: 24px; border-radius: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <nav class="shell nav" aria-label="主导航">
+      <a class="brand" href="#top" aria-label="FlowDraft 首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>FlowDraft</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#workflow">写作闭环</a>
+        <a href="#features">核心能力</a>
+        <a href="#scenarios">适合谁用</a>
+        <a href="#join">申请体验</a>
+      </div>
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="#workflow">查看流程</a>
+        <a class="btn btn-primary" href="#join">加入内测</a>
+      </div>
+      <button class="mobile-toggle" id="mobileToggle" aria-label="打开导航" aria-expanded="false">
+        <span>☰</span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <span class="eyebrow"><i class="pulse" aria-hidden="true"></i> 面向自媒体创作者的写作工作台</span>
+          <h1>把一闪而过的想法，变成可发布的 <em>好文章</em>。</h1>
+          <p class="lead">
+            FlowDraft 把捕捉想法、选题澄清、大纲生成、初稿撰写、润色改写、去 AI 味、配图与排版发布串成一个连续工作流。你专注表达，系统负责把创作过程推进到底。
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#join">申请早期体验</a>
+            <a class="btn btn-secondary" href="#workflow">看完整工作流</a>
+          </div>
+          <div class="micro-proof" aria-label="产品原则">
+            <span><i class="dot"></i> 不只生成，负责推进</span>
+            <span><i class="dot"></i> 保留作者个人语气</span>
+            <span><i class="dot"></i> 为发布平台做最后一公里</span>
+          </div>
+        </div>
+
+        <div class="product-card" aria-label="产品界面预览">
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="status-pill">Draft · 选题澄清中</span>
+            </div>
+            <div class="workbench">
+              <aside class="rail">
+                <div class="rail-title">Pipeline</div>
+                <button class="active" data-preview="idea">想法 <small>01</small></button>
+                <button data-preview="topic">选题 <small>02</small></button>
+                <button data-preview="draft">初稿 <small>04</small></button>
+                <button data-preview="publish">发布 <small>08</small></button>
+              </aside>
+              <section class="editor">
+                <div class="doc-head">
+                  <div>
+                    <h3 id="previewTitle">从碎片灵感开始</h3>
+                    <p id="previewSub">把微信收藏、备忘录、语音灵感汇总成一张待澄清的选题卡。</p>
+                  </div>
+                  <div class="quality">
+                    <div class="quality-row"><span>完成度</span><strong id="qualityText">32%</strong></div>
+                    <div class="meter"><span id="qualityMeter" style="width:32%"></span></div>
+                  </div>
+                </div>
+
+                <article class="paper">
+                  <div class="kicker" id="paperKicker">Idea Capture</div>
+                  <h4 id="paperTitle">“为什么读者明明收藏了很多方法论，却仍然写不出稳定内容？”</h4>
+                  <p id="paperBody">
+                    系统会保留原始表达，同时追问受众、观点、案例和平台语境，避免灵感还没成型就被模板化。
+                  </p>
+                  <div class="suggestions">
+                    <div class="chip-card" id="cardOne">追问：这篇文章最想帮谁解决什么卡点？</div>
+                    <div class="chip-card" id="cardTwo">素材：可补充一次真实写作卡壳的场景。</div>
+                  </div>
+                </article>
+
+                <div class="editor-actions">
+                  <button class="btn btn-primary" id="advanceBtn" type="button">推进到下一步</button>
+                  <button class="btn btn-secondary" id="copyBtn" type="button">复制当前卡片</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Closed-loop workflow</div>
+            <h2>不是一堆 AI 功能，而是一条能走完的创作流水线。</h2>
+          </div>
+          <p>
+            每一步都有明确产物、判断标准和下一步动作。创作者不需要在多个工具之间搬运内容，也不需要反复解释“我要写什么”。
+          </p>
+        </div>
+
+        <div class="workflow">
+          <div class="steps" aria-label="写作流程步骤">
+            <button class="step active" data-stage="0" type="button">
+              <span class="num">01</span>
+              <span><strong>捕捉想法</strong><span>随手记录灵感、链接、金句、语音和读者问题。</span></span>
+            </button>
+            <button class="step" data-stage="1" type="button">
+              <span class="num">02</span>
+              <span><strong>选题澄清</strong><span>把模糊念头变成受众、观点、角度清晰的选题。</span></span>
+            </button>
+            <button class="step" data-stage="2" type="button">
+              <span class="num">03</span>
+              <span><strong>大纲生成</strong><span>按平台节奏组织结构，先确定文章骨架。</span></span>
+            </button>
+            <button class="step" data-stage="3" type="button">
+              <span class="num">04</span>
+              <span><strong>撰写初稿</strong><span>围绕观点和素材展开，不把作者声音洗掉。</span></span>
+            </button>
+            <button class="step" data-stage="4" type="button">
+              <span class="num">05</span>
+              <span><strong>润色改写</strong><span>优化节奏、标题、开头、转场和结尾。</span></span>
+            </button>
+            <button class="step" data-stage="5" type="button">
+              <span class="num">06</span>
+              <span><strong>去 AI 味</strong><span>检查套话、空泛表达和过度规整的句式。</span></span>
+            </button>
+            <button class="step" data-stage="6" type="button">
+              <span class="num">07</span>
+              <span><strong>文章配图</strong><span>生成封面方向、插图提示词和图文搭配建议。</span></span>
+            </button>
+            <button class="step" data-stage="7" type="button">
+              <span class="num">08</span>
+              <span><strong>排版发布</strong><span>适配公众号、小红书、知乎等平台的发布格式。</span></span>
+            </button>
+          </div>
+
+          <article class="workflow-panel" aria-live="polite">
+            <div class="panel-top">
+              <div>
+                <h3 id="stageTitle">捕捉想法</h3>
+                <p id="stageDesc">让灵感先安全落地，不急着变成完整文章。系统会把碎片内容整理成待澄清的素材卡，并保留来源与原始语气。</p>
+              </div>
+              <span class="stage-tag" id="stageTag">STEP 01</span>
+            </div>
+
+            <div class="module-grid">
+              <div class="module">
+                <h4>这一阶段的产物</h4>
+                <ul id="stageOutputs">
+                  <li><span class="check"></span><span>灵感卡：一句话想法、素材来源、触发场景</span></li>
+                  <li><span class="check"></span><span>素材池：链接、摘录、读者提问、个人经历</span></li>
+                  <li><span class="check"></span><span>待澄清问题：受众、观点、可用案例</span></li>
+                </ul>
+              </div>
+              <div class="module before-after">
+                <div class="quote-box">
+                  <small>Before</small>
+                  <p id="beforeText">“想写一下普通人如何长期输出，但不知道从哪写。”</p>
+                </div>
+                <div class="quote-box">
+                  <small>After</small>
+                  <p id="afterText">“给刚开始做自媒体的人：为什么你缺的不是灵感，而是一套可重复的选题澄清流程。”</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-foot">
+              <span id="stagePrinciple">原则：先保真，再结构化。</span>
+              <a class="btn btn-secondary" href="#join">用这个流程试写一篇</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Core modules</div>
+            <h2>围绕创作者真实卡点设计，而不是围绕模型能力堆功能。</h2>
+          </div>
+          <p>首页主题采用“清晰工作台 + 温和创作感”的视觉语言：像专业工具一样可靠，也像编辑搭档一样不压迫。</p>
+        </div>
+
+        <div class="features">
+          <article class="feature-card wide">
+            <div class="feature-icon">A</div>
+            <h3>选题澄清器</h3>
+            <p>通过连续追问把“我想写点什么”变成明确命题：写给谁、解决什么、站在什么角度、需要哪些例子。避免一上来就生成空泛初稿。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">B</div>
+            <h3>个人语气库</h3>
+            <p>沉淀作者常用表达、禁用词、标题偏好和案例类型，让改写不是“更像 AI”，而是更像你自己。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">C</div>
+            <h3>去 AI 味检查</h3>
+            <p>标出套话、过度总结、机械排比和空洞形容词，并给出更具体、更有个人经验感的替换建议。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">D</div>
+            <h3>图文发布助手</h3>
+            <p>根据文章核心观点生成封面方向、配图提示词、分段排版和平台适配版本，减少发布前的机械整理。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">E</div>
+            <h3>多平台版本管理</h3>
+            <p>同一篇内容可以生成公众号深度版、小红书卡片版、知乎回答版，保留统一观点但调整表达密度。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="scenarios">
+      <div class="shell scenario">
+        <article class="scenario-card">
+          <div class="section-kicker" style="color:rgba(255,255,255,.62)">Audience fit</div>
+          <h3>适合把内容当作长期资产的人。</h3>
+          <p>
+            不是一次性代写工具，而是让创作者逐渐形成自己的选题库、素材库、表达库和发布节奏。
+          </p>
+        </article>
+
+        <div class="scenario-list">
+          <article class="audience-row">
+            <strong>公众号作者</strong>
+            <p>需要把碎片观察沉淀成深度文章，重视观点、结构、案例和排版质量。</p>
+          </article>
+          <article class="audience-row">
+            <strong>小红书博主</strong>
+            <p>需要把同一主题拆成标题、封面、正文、卡片和评论区互动版本。</p>
+          </article>
+          <article class="audience-row">
+            <strong>知识 IP</strong>
+            <p>需要长期维护专业表达，避免每篇内容都从空白页重新开始。</p>
+          </article>
+          <article class="audience-row">
+            <strong>内容团队</strong>
+            <p>需要统一选题标准、协作流程和发布前检查，而不是散落在文档和聊天记录里。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" id="join">
+      <div class="shell">
+        <div class="cta-card">
+          <div>
+            <div class="section-kicker">Early access</div>
+            <h2>先用一篇真实文章，验证这条闭环是否适合你的创作方式。</h2>
+            <p>
+              留下你的内容方向和常用平台。我们会优先邀请正在稳定创作、但希望减少选题和初稿摩擦的作者试用。
+            </p>
+          </div>
+
+          <form class="waitlist" id="waitlistForm" novalidate>
+            <div class="field">
+              <label for="email">邮箱或微信</label>
+              <input id="email" name="email" autocomplete="email" placeholder="例如：name@example.com / 微信号" />
+            </div>
+            <div class="field">
+              <label for="channel">你主要发布在哪个平台？</label>
+              <input id="channel" name="channel" placeholder="例如：公众号、小红书、知乎、视频号" />
+            </div>
+            <div class="field">
+              <label for="topic">你最近想写的主题</label>
+              <textarea id="topic" name="topic" placeholder="一句话描述即可，例如：普通人如何建立稳定输出系统"></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">提交申请</button>
+            <div class="form-note" id="formNote">我们不会展示你的联系方式；这里只用于内测邀请。</div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>© FlowDraft — Writing workbench for creators</span>
+      <span>主题方向：清晰、可信、有创作者温度</span>
+    </div>
+  </footer>
+
+  <script>
+    const topbar = document.getElementById('topbar');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+
+    mobileToggle.addEventListener('click', () => {
+      const open = topbar.classList.toggle('open');
+      mobileToggle.setAttribute('aria-expanded', String(open));
+    });
+
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        topbar.classList.remove('open');
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    const previewData = {
+      idea: {
+        title: '从碎片灵感开始',
+        sub: '把微信收藏、备忘录、语音灵感汇总成一张待澄清的选题卡。',
+        quality: 32,
+        kicker: 'Idea Capture',
+        paperTitle: '“为什么读者明明收藏了很多方法论，却仍然写不出稳定内容？”',
+        body: '系统会保留原始表达，同时追问受众、观点、案例和平台语境，避免灵感还没成型就被模板化。',
+        one: '追问：这篇文章最想帮谁解决什么卡点？',
+        two: '素材：可补充一次真实写作卡壳的场景。'
+      },
+      topic: {
+        title: '把想法澄清成选题',
+        sub: '系统通过追问把受众、观点、角度和标题方向固定下来。',
+        quality: 51,
+        kicker: 'Topic Clarity',
+        paperTitle: '给刚开始做自媒体的人：你缺的不是灵感，而是选题澄清流程',
+        body: '这一步会把“想写长期输出”拆成读者痛点、作者立场、反常识观点和可展开案例。',
+        one: '标题方向：反常识 / 清单 / 经验复盘',
+        two: '判断标准：读者看完是否知道下一步怎么做。'
+      },
+      draft: {
+        title: '生成可编辑初稿',
+        sub: '先完成结构和论证，再进入句子层面的润色。',
+        quality: 68,
+        kicker: 'Drafting',
+        paperTitle: '稳定输出不是靠自律，而是靠一个不消耗意志力的流程',
+        body: '初稿会围绕“触发场景—核心观点—方法步骤—真实案例—行动建议”展开，避免只有漂亮句子没有信息密度。',
+        one: '待补充：作者自己的失败案例或对话截图',
+        two: '下一步：检查段落节奏，删掉空泛总结。'
+      },
+      publish: {
+        title: '适配平台并准备发布',
+        sub: '同一篇文章生成不同平台版本，保留观点但调整表达密度。',
+        quality: 91,
+        kicker: 'Publish Ready',
+        paperTitle: '公众号深度版 / 小红书卡片版 / 知乎回答版',
+        body: '系统会输出标题候选、摘要、封面方向、分段排版和发布前检查清单，让最后一公里不再拖延。',
+        one: '封面方向：工作台截图 + 一句核心反常识',
+        two: '检查项：标题承诺、开头钩子、结尾行动。'
+      }
+    };
+
+    document.querySelectorAll('.rail button').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.rail button').forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        const data = previewData[button.dataset.preview];
+        document.getElementById('previewTitle').textContent = data.title;
+        document.getElementById('previewSub').textContent = data.sub;
+        document.getElementById('qualityText').textContent = data.quality + '%';
+        document.getElementById('qualityMeter').style.width = data.quality + '%';
+        document.getElementById('paperKicker').textContent = data.kicker;
+        document.getElementById('paperTitle').textContent = data.paperTitle;
+        document.getElementById('paperBody').textContent = data.body;
+        document.getElementById('cardOne').textContent = data.one;
+        document.getElementById('cardTwo').textContent = data.two;
+      });
+    });
+
+    document.getElementById('advanceBtn').addEventListener('click', () => {
+      const buttons = Array.from(document.querySelectorAll('.rail button'));
+      const current = buttons.findIndex(button => button.classList.contains('active'));
+      const next = buttons[(current + 1) % buttons.length];
+      next.click();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = [
+        document.getElementById('paperTitle').textContent,
+        document.getElementById('paperBody').textContent
+      ].join('\n\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('copyBtn');
+        const old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(() => { btn.textContent = old; }, 1300);
+      } catch (_) {
+        const btn = document.getElementById('copyBtn');
+        const old = btn.textContent;
+        btn.textContent = '复制受限';
+        setTimeout(() => { btn.textContent = old; }, 1300);
+      }
+    });
+
+    const stages = [
+      {
+        title: '捕捉想法',
+        desc: '让灵感先安全落地，不急着变成完整文章。系统会把碎片内容整理成待澄清的素材卡，并保留来源与原始语气。',
+        tag: 'STEP 01',
+        outputs: ['灵感卡：一句话想法、素材来源、触发场景', '素材池：链接、摘录、读者提问、个人经历', '待澄清问题：受众、观点、可用案例'],
+        before: '“想写一下普通人如何长期输出，但不知道从哪写。”',
+        after: '“给刚开始做自媒体的人：为什么你缺的不是灵感，而是一套可重复的选题澄清流程。”',
+        principle: '原则：先保真，再结构化。'
+      },
+      {
+        title: '选题澄清',
+        desc: '把一个模糊念头拆成受众、痛点、观点、证据和平台语境。系统不会直接代写，而是先帮你判断这个选题是否值得写。',
+        tag: 'STEP 02',
+        outputs: ['目标读者：这篇内容具体写给谁', '核心命题：读者看完会相信什么', '差异角度：避免写成同质化方法论'],
+        before: '“长期输出很重要。”',
+        after: '“为什么很多人不是缺内容能力，而是缺一个能反复启动的选题判断框架。”',
+        principle: '原则：不清楚写给谁，就先别急着生成。'
+      },
+      {
+        title: '大纲生成',
+        desc: '围绕选题生成文章骨架，并标出每一段要承担的任务：建立共鸣、提出观点、给出方法、补充案例或推动转化。',
+        tag: 'STEP 03',
+        outputs: ['结构大纲：标题、开头、主体、结尾', '段落任务：每段为什么存在', '素材缺口：哪些地方需要作者补充经历'],
+        before: '一堆零散观点，顺序随手排列。',
+        after: '开头钩子 → 误区拆解 → 三步流程 → 真实案例 → 行动清单。',
+        principle: '原则：先搭骨架，再填句子。'
+      },
+      {
+        title: '撰写初稿',
+        desc: '根据大纲生成可编辑初稿，保留作者提供的语气、案例和判断，不用空泛金句填满篇幅。',
+        tag: 'STEP 04',
+        outputs: ['完整初稿：可继续编辑的正文', '作者待补充标记：需要真实经历的位置', '弱段落提示：论证不足或跳跃的地方'],
+        before: '打开空白文档，不知道第一段怎么写。',
+        after: '得到一篇结构完整、可删可改、知道哪里需要补素材的初稿。',
+        principle: '原则：初稿是毛坯，不是终稿。'
+      },
+      {
+        title: '润色改写',
+        desc: '从标题、开头、转场、句式节奏和结尾行动五个层面做精修，提升可读性而不是把文章改得更花哨。',
+        tag: 'STEP 05',
+        outputs: ['标题候选：不同平台和语气版本', '句子级建议：删冗余、换表达、强节奏', '开头与结尾：增强阅读动机和行动感'],
+        before: '“本文将从三个方面介绍如何提升写作效率。”',
+        after: '“你不是写得慢，而是每次都在空白页前重新发明流程。”',
+        principle: '原则：润色不是堆形容词，是提高信息密度。'
+      },
+      {
+        title: '去 AI 味',
+        desc: '识别模板化结构、机械排比、过度总结和没有个人经验的空话，并建议替换成更具体、更像作者本人的表达。',
+        tag: 'STEP 06',
+        outputs: ['AI 味标注：套话、空话、机械句式', '替换建议：更具体的表达方式', '个人化提示：哪里适合补充作者经历'],
+        before: '“在当今快节奏时代，内容创作变得越来越重要。”',
+        after: '“最折磨人的不是写不出金句，而是每天都要重新判断：今天到底写什么。”',
+        principle: '原则：少一点正确废话，多一点真实判断。'
+      },
+      {
+        title: '文章配图',
+        desc: '根据文章主题和发布平台生成封面方向、配图提示词、图文节奏建议，帮助内容从“可读”走到“愿意点开”。',
+        tag: 'STEP 07',
+        outputs: ['封面方向：标题层级、画面构图、色彩建议', '插图提示词：可用于图像生成工具', '图文节奏：哪里需要图、哪里留白'],
+        before: '临发布前随便找一张不相关的配图。',
+        after: '封面承接标题承诺，正文插图服务理解，不抢文章表达。',
+        principle: '原则：图片不是装饰，是第二标题。'
+      },
+      {
+        title: '排版发布',
+        desc: '根据公众号、小红书、知乎等平台的阅读习惯生成适配版本，并给出发布前检查项。',
+        tag: 'STEP 08',
+        outputs: ['平台版本：长文、卡片、问答等格式', '排版建议：小标题、引用、留白和强调', '发布检查：标题、摘要、封面、结尾动作'],
+        before: '写完正文后，还要手动拆平台、调格式、补封面。',
+        after: '一篇内容，多个平台版本，最后只需要作者确认语气和细节。',
+        principle: '原则：发布不是附属步骤，是创作闭环的一部分。'
+      }
+    ];
+
+    function renderStage(index) {
+      const stage = stages[index];
+      document.getElementById('stageTitle').textContent = stage.title;
+      document.getElementById('stageDesc').textContent = stage.desc;
+      document.getElementById('stageTag').textContent = stage.tag;
+      document.getElementById('beforeText').textContent = stage.before;
+      document.getElementById('afterText').textContent = stage.after;
+      document.getElementById('stagePrinciple').textContent = stage.principle;
+      document.getElementById('stageOutputs').innerHTML = stage.outputs.map(item =>
+        '<li><span class="check"></span><span>' + item + '</span></li>'
+      ).join('');
+      document.querySelectorAll('.step').forEach((button, i) => {
+        button.classList.toggle('active', i === index);
+      });
+    }
+
+    document.querySelectorAll('.step').forEach(button => {
+      button.addEventListener('click', () => renderStage(Number(button.dataset.stage)));
+    });
+
+    document.getElementById('waitlistForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const channel = document.getElementById('channel').value.trim();
+      const topic = document.getElementById('topic').value.trim();
+      const note = document.getElementById('formNote');
+
+      note.className = 'form-note';
+
+      if (!email) {
+        note.textContent = '请先留下邮箱或微信，方便发送内测邀请。';
+        note.classList.add('error');
+        document.getElementById('email').focus();
+        return;
+      }
+
+      if (!channel) {
+        note.textContent = '请补充一个主要发布平台，我们会按平台准备体验流程。';
+        note.classList.add('error');
+        document.getElementById('channel').focus();
+        return;
+      }
+
+      note.textContent = topic
+        ? '已收到。我们会围绕你的发布平台和主题准备一条试写流程。'
+        : '已收到。也可以补充一个最近想写的主题，方便我们准备试写样例。';
+      note.classList.add('ok');
+      event.target.querySelector('button[type="submit"]').textContent = '已提交';
+    });
+  </script>
+</body>
+</html>
