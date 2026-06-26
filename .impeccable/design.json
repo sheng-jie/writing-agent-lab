@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-26T00:00:00.000Z",
+  "title": "Design System: FlowDraft",
+  "extensions": {
+    "colorMeta": {
+      "fd-accent": {
+        "role": "primary",
+        "displayName": "Quiet Teal",
+        "canonical": "oklch(52% 0.115 166)",
+        "tonalRamp": ["oklch(15% 0.055 166)", "oklch(25% 0.075 166)", "oklch(35% 0.095 166)", "oklch(45% 0.11 166)", "oklch(52% 0.115 166)", "oklch(68% 0.09 166)", "oklch(82% 0.065 166)", "oklch(95% 0.035 166)"]
+      },
+      "fd-gold": {
+        "role": "secondary",
+        "displayName": "Proof Gold",
+        "canonical": "oklch(74% 0.13 78)",
+        "tonalRamp": ["oklch(18% 0.05 78)", "oklch(30% 0.07 78)", "oklch(44% 0.09 78)", "oklch(58% 0.11 78)", "oklch(74% 0.13 78)", "oklch(83% 0.095 78)", "oklch(91% 0.06 78)", "oklch(97% 0.03 78)"]
+      },
+      "fd-ink": {
+        "role": "neutral",
+        "displayName": "Deep Work Ink",
+        "canonical": "oklch(24% 0.035 245)",
+        "tonalRamp": ["oklch(12% 0.025 245)", "oklch(18% 0.03 245)", "oklch(24% 0.035 245)", "oklch(34% 0.032 245)", "oklch(48% 0.026 245)", "oklch(64% 0.02 245)", "oklch(82% 0.014 245)", "oklch(96% 0.008 245)"]
+      },
+      "fd-bg": {
+        "role": "neutral",
+        "displayName": "Desk Mist",
+        "canonical": "oklch(98% 0.006 185)",
+        "tonalRamp": ["oklch(18% 0.012 185)", "oklch(30% 0.011 185)", "oklch(44% 0.01 185)", "oklch(58% 0.009 185)", "oklch(72% 0.008 185)", "oklch(86% 0.007 185)", "oklch(94% 0.006 185)", "oklch(98% 0.006 185)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "首页主标题和重大空状态；不得比 -0.04em 更紧。" },
+      "body": { "displayName": "Body", "purpose": "中文长文本与说明，优先行高和可读性。" },
+      "label": { "displayName": "Label", "purpose": "状态、步骤、工具栏标签；不要泛用成每节 eyebrow。" }
+    },
+    "shadows": [
+      { "name": "ambient-panel", "value": "0 24px 70px rgba(16, 39, 44, 0.11)", "purpose": "首页产品预览、CTA 大容器和沉浸式关键面板。" },
+      { "name": "soft-lift", "value": "0 14px 38px rgba(16, 39, 44, 0.08)", "purpose": "稿纸、步骤选中态、表单容器和浮层导航。" },
+      { "name": "control-shadow", "value": "shadow-xs", "purpose": "shadcn 控件的轻触感默认深度。" }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "150ms ease", "purpose": "按钮、输入、选择态反馈。" },
+      { "name": "surface-lift", "value": "180ms ease", "purpose": "轻微 hover 位移和阴影增强。" },
+      { "name": "progress-change", "value": "350ms ease", "purpose": "质量/进度条宽度变化。" }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "980px" },
+      { "name": "mobile", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "推进写作流程的主行动。",
+      "html": "<button class=\"ds-btn-primary\">申请早期体验</button>",
+      "css": ".ds-btn-primary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 0; border-radius: 999px; padding: 12px 18px; background: linear-gradient(135deg, oklch(42% 0.12 166), oklch(52% 0.115 166)); color: #fff; font: 740 14px/1.2 system-ui, sans-serif; letter-spacing: -0.01em; transition: transform 180ms ease, box-shadow 180ms ease; box-shadow: 0 14px 30px color-mix(in oklch, oklch(52% 0.115 166) 28%, transparent); } .ds-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 18px 38px color-mix(in oklch, oklch(52% 0.115 166) 34%, transparent); } .ds-btn-primary:focus-visible { outline: 3px solid color-mix(in oklch, oklch(52% 0.115 166) 32%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "查看流程、返回、次级导航等非推进动作。",
+      "html": "<button class=\"ds-btn-secondary\">看完整工作流</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid oklch(89% 0.011 190); border-radius: 999px; padding: 12px 18px; background: #fff; color: oklch(19% 0.025 210); font: 740 14px/1.2 system-ui, sans-serif; letter-spacing: -0.01em; transition: transform 180ms ease, background 180ms ease, border-color 180ms ease; } .ds-btn-secondary:hover { transform: translateY(-1px); background: oklch(96.5% 0.012 180); } .ds-btn-secondary:focus-visible { outline: 3px solid color-mix(in oklch, oklch(52% 0.115 166) 24%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Writing Card",
+      "kind": "card",
+      "refersTo": "card-standard",
+      "description": "稿纸、选题卡和流程面板的白色内容容器。",
+      "html": "<article class=\"ds-writing-card\"><p class=\"ds-kicker\">Topic Clarity</p><h3>把想法澄清成选题</h3><p>系统通过追问把受众、观点、角度和标题方向固定下来。</p></article>",
+      "css": ".ds-writing-card { display: grid; gap: 14px; max-width: 360px; padding: 22px; border: 1px solid oklch(89% 0.011 190); border-radius: 20px; background: #fff; color: oklch(19% 0.025 210); box-shadow: 0 14px 38px rgba(16, 39, 44, 0.08); } .ds-writing-card h3 { margin: 0; font: 680 24px/1.16 system-ui, sans-serif; letter-spacing: -0.035em; } .ds-writing-card p { margin: 0; color: oklch(48% 0.022 220); font: 400 15px/1.7 system-ui, sans-serif; } .ds-kicker { color: oklch(42% 0.12 166); font: 760 12px/1 ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-standard",
+      "description": "写作主题、联系方式和补充信息输入。",
+      "html": "<label class=\"ds-field\"><span>最近想写的主题</span><input class=\"ds-input\" placeholder=\"例如：AI Coding 如何改变工程协作\" /></label>",
+      "css": ".ds-field { display: grid; gap: 7px; color: oklch(48% 0.022 220); font: 720 13px/1.2 system-ui, sans-serif; } .ds-input { min-height: 48px; border: 1px solid oklch(89% 0.011 190); border-radius: 15px; background: #fff; color: oklch(19% 0.025 210); padding: 13px 14px; font: 400 15px/1.4 system-ui, sans-serif; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: oklch(48% 0.022 220); } .ds-input:focus-visible { outline: none; border-color: color-mix(in oklch, oklch(52% 0.115 166) 58%, oklch(89% 0.011 190)); box-shadow: 0 0 0 4px color-mix(in oklch, oklch(52% 0.115 166) 14%, transparent); }"
+    },
+    {
+      "name": "Step Pill",
+      "kind": "chip",
+      "refersTo": "button-secondary",
+      "description": "流程步骤、当前阶段和轻量状态提示。",
+      "html": "<span class=\"ds-step-pill\">STEP 02 · 选题澄清</span>",
+      "css": ".ds-step-pill { display: inline-flex; align-items: center; min-height: 32px; border: 1px solid color-mix(in oklch, oklch(52% 0.115 166) 26%, oklch(89% 0.011 190)); border-radius: 999px; background: oklch(92% 0.045 166); color: oklch(42% 0.12 166); padding: 8px 12px; font: 760 12px/1 ui-monospace, monospace; letter-spacing: 0.08em; }"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "card-standard",
+      "description": "首页和产品入口的轻量顶部导航。",
+      "html": "<nav class=\"ds-nav\"><strong>FlowDraft</strong><a>写作闭环</a><a>核心能力</a><button>加入内测</button></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 24px; min-height: 72px; border-bottom: 1px solid color-mix(in oklch, oklch(89% 0.011 190) 70%, transparent); background: color-mix(in oklch, oklch(98% 0.006 185) 82%, transparent); color: oklch(19% 0.025 210); font: 620 14px/1.2 system-ui, sans-serif; } .ds-nav strong { margin-right: auto; font-size: 20px; font-weight: 760; letter-spacing: -0.03em; } .ds-nav a { color: oklch(48% 0.022 220); text-decoration: none; } .ds-nav a:hover { color: oklch(19% 0.025 210); } .ds-nav button { border: 0; border-radius: 999px; background: oklch(42% 0.12 166); color: #fff; padding: 10px 14px; font-weight: 740; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "安静的编辑室",
+    "overview": "FlowDraft 的视觉系统应像一间安静的编辑室：光线柔和、工具顺手、稿件状态清楚，所有界面材料都服务于把一个想法继续往前推进。它不表演 AI，不制造喧哗，也不把用户困在一个泛聊天框里；它像可靠编辑一样用结构、状态和少量高价值提示帮助用户完成写作闭环。\n\n当前前端由两层系统组成：全局 shadcn/base-vega 产品组件提供熟悉、克制的控件语言；fd-* 首页系统提供更具品牌识别的冷静青绿、克制金色、白色稿纸和深墨蓝面板。后续产品界面应优先继承 shadcn 的一致性，再把 fd-* 的沉浸氛围用于关键写作流程、状态提示和发布闭环节点。",
+    "keyCharacteristics": [
+      "冷静青绿是主要行动与进度色，使用稀少但明确。",
+      "金色只用于完成度、亮点和发布价值提示，不做大面积装饰。",
+      "白色稿纸、浅青灰背景和深墨蓝强调区构成“写作工作台”空间感。",
+      "产品控件保持熟悉：清晰焦点、标准表单、可预期按钮、少量状态动效。",
+      "中文长文本优先可读性；标题可以有气质，但不能牺牲换行与移动端稳定性。"
+    ],
+    "rules": [
+      { "name": "The ≤10% Accent Rule", "body": "青绿和金色合计不应超过单屏可视面积的 10%，它们的稀少感就是权威感。", "section": "colors" },
+      { "name": "The No Cream AI Rule", "body": "不要把“写作产品”翻译成通用 AI SaaS 奶油风；背景要么是真白/浅青灰，要么是明确的深墨蓝工作区。", "section": "colors" },
+      { "name": "The Editor Voice Rule", "body": "字体层级必须像编辑批注：清楚、节制、有判断。不要用夸张 display 字体或过密字距制造“高级感”。", "section": "typography" },
+      { "name": "The Shadow Has a Job Rule", "body": "如果阴影不能说明“这个面板更靠前、这个控件可交互、这个状态被选中”，就删掉它。边框和大软阴影不要同时堆在普通卡片上。", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 把青绿用于当前步骤、主行动、焦点和进度，保持稀少而明确。",
+      "Do 让写作流程可见：捕捉想法、选题澄清、大纲生成、撰写初稿、润色改写、去 AI 味、文章配图、排版发布。",
+      "Do 使用熟悉的 shadcn/Base UI 控件语言构建产品界面，保留标准键盘、焦点、错误和禁用状态。",
+      "Do 为中文长文本保留足够行高和换行弹性，移动端逐屏检查标题是否溢出。",
+      "Do 用空状态、加载骨架和内联提示教用户下一步，而不是把用户丢进空聊天框。"
+    ],
+    "donts": [
+      "Don't 做“通用 AI SaaS 奶油风”；不要用温暖奶油背景、泛紫蓝渐变和空泛效率文案套壳。",
+      "Don't 做“模板化聊天机器人”；聊天可以存在，但不能成为所有能力的唯一界面。",
+      "Don't 做“夸张营销感”；避免巨大数字指标、hero metric 模板、过度承诺和大面积装饰性渐变。",
+      "Don't 过度拟人化；FlowDraft 是专业编辑和流程工作台，不是卖萌助手。",
+      "Don't 使用彩色侧边粗条、渐变文字、重复 eyebrow、无意义玻璃拟态或大软阴影 + 细边框的幽灵卡片组合。"
+    ]
+  }
+}
