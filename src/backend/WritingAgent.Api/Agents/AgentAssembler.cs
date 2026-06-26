@@ -21,7 +21,21 @@ public sealed class AgentAssembler(
         var tools = toolCatalog.ResolveTools(definition.AllowedToolNames);
         var skillProviders = BuildSkillProviders(definition.SkillNames);
 
-        return new ChatClientAgent(
+        // chatClient.AsHarnessAgent(new HarnessAgentOptions()
+        // {
+        //     Name = definition.Name,
+        //     Description = definition.Description,
+        //     ChatOptions = new ChatOptions
+        //     {
+        //         Instructions = definition.Instructions,
+        //         Tools = tools.Cast<AITool>().ToArray()
+        //     },
+        //     AIContextProviders = skillProviders,
+        //     ChatHistoryProvider = new InMemoryChatHistoryProvider(),
+            
+        // });
+
+        var agent = new ChatClientAgent(
             chatClient,
             new ChatClientAgentOptions
             {
@@ -32,11 +46,16 @@ public sealed class AgentAssembler(
                     Instructions = definition.Instructions,
                     Tools = tools.Cast<AITool>().ToArray()
                 },
+                EnableNonApprovalRequiredFunctionBypassing = true,
                 AIContextProviders = skillProviders,
                 ChatHistoryProvider = new InMemoryChatHistoryProvider()
             },
             loggerFactory,
             serviceProvider);
+
+
+
+        return agent;
     }
 
     private IReadOnlyList<AIContextProvider> BuildSkillProviders(IReadOnlyList<string> skillNames)
