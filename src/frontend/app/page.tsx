@@ -253,7 +253,7 @@ export default function Home() {
               </div>
             </div>
 
-            <Card className="fd-product-card" aria-label="产品界面预览">
+            <figure className="fd-product-card" aria-label="产品界面预览">
               <div className="fd-app-window">
                 <div className="fd-window-bar">
                   <div className="fd-traffic" aria-hidden="true"><i /><i /><i /></div>
@@ -278,7 +278,7 @@ export default function Home() {
                   <section className="fd-editor">
                     <div className="fd-doc-head">
                       <div>
-                        <h3>{preview.title}</h3>
+                        <h2>{preview.title}</h2>
                         <p>{preview.sub}</p>
                       </div>
                       <div className="fd-quality">
@@ -287,7 +287,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <Card className="fd-paper">
+                    <article className="fd-paper">
                       <div className="fd-kicker">{preview.kicker}</div>
                       <h4>{preview.paperTitle}</h4>
                       <p>{preview.body}</p>
@@ -295,7 +295,7 @@ export default function Home() {
                         <div className="fd-chip-card">{preview.one}</div>
                         <div className="fd-chip-card">{preview.two}</div>
                       </div>
-                    </Card>
+                    </article>
 
                     <div className="fd-editor-actions">
                       <Button className="fd-btn fd-btn-primary" type="button" onClick={advancePreview}>推进到下一步</Button>
@@ -304,7 +304,7 @@ export default function Home() {
                   </section>
                 </div>
               </div>
-            </Card>
+            </figure>
           </div>
         </section>
 
@@ -312,7 +312,7 @@ export default function Home() {
           <div className="fd-shell">
             <div className="fd-section-head">
               <div>
-                <div className="fd-section-kicker">Closed-loop workflow</div>
+                <p className="fd-section-note">写作闭环</p>
                 <h2>不是一堆 AI 功能，而是一条能走完的创作流水线。</h2>
               </div>
               <p>每一步都有明确产物、判断标准和下一步动作。创作者不需要在多个工具之间搬运内容，也不需要反复解释“我要写什么”。</p>
@@ -376,7 +376,7 @@ export default function Home() {
           <div className="fd-shell">
             <div className="fd-section-head">
               <div>
-                <div className="fd-section-kicker">Core modules</div>
+                <p className="fd-section-note">核心能力</p>
                 <h2>围绕创作者真实卡点设计，而不是围绕模型能力堆功能。</h2>
               </div>
               <p>首页主题采用“清晰工作台 + 温和创作感”的视觉语言：像专业工具一样可靠，也像编辑搭档一样不压迫。</p>
@@ -397,7 +397,7 @@ export default function Home() {
         <section className="fd-section" id="scenarios">
           <div className="fd-shell fd-scenario">
             <Card className="fd-scenario-card">
-              <div className="fd-section-kicker">Audience fit</div>
+              <p className="fd-section-note">适合谁用</p>
               <h3>适合把内容当作长期资产的人。</h3>
               <p>不是一次性代写工具，而是让创作者逐渐形成自己的选题库、素材库、表达库和发布节奏。</p>
             </Card>
@@ -417,7 +417,7 @@ export default function Home() {
           <div className="fd-shell">
             <Card className="fd-cta-card">
               <div>
-                <div className="fd-section-kicker">Early access</div>
+                <p className="fd-section-note">早期体验</p>
                 <h2>先用一篇真实文章，验证这条闭环是否适合你的创作方式。</h2>
                 <p>留下你的内容方向和常用平台。我们会优先邀请正在稳定创作、但希望减少选题和初稿摩擦的作者试用。</p>
               </div>
