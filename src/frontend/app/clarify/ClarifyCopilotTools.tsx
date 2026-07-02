@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { z } from "zod";
 
 import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificationArgsSchema, type ClarificationArgs } from "./ClarificationQuestionCard";
+import { WritingIntentConfirmCard, WritingIntentConfirmPendingCard, writingIntentConfirmationArgsSchema, type WritingIntentConfirmationArgs } from "./WritingIntentConfirmCard";
 
 type Material = {
   title: string;
@@ -64,7 +65,7 @@ export function ClarifyCopilotTools({ brief, phase, setBrief, setPhase, showToas
       constraints: {
         maxClarifyingQuestions: 3,
         requiredFields: ["rawNeed", "topic", "audience", "thesis", "materials"],
-        toolPolicy: "Use frontend tools to update the left writing intent card after identifying or changing fields.",
+        toolPolicy: "Use updateWritingBrief and addMaterials while clarifying. When required fields are complete, call confirmWritingIntent. Do not save the writing intent without confirmWritingIntent; saving is handled internally by the confirmation card after the user clicks confirm.",
       },
     }),
     [brief, phase],
@@ -98,6 +99,42 @@ export function ClarifyCopilotTools({ brief, phase, setBrief, setPhase, showToas
       },
     },
     [showToast],
+  );
+
+  useHumanInTheLoop<WritingIntentConfirmationArgs>(
+    {
+      name: "confirmWritingIntent",
+      description: "Ask the user to confirm whether the identified writing intent should be saved as the left-side writing intent card, or whether the agent should continue clarifying.",
+      parameters: writingIntentConfirmationArgsSchema,
+      render: ({ args, status, respond }) => {
+        if (status === ToolCallStatus.InProgress) {
+          return <WritingIntentConfirmPendingCard title={args.title} />;
+        }
+
+        return (
+          <WritingIntentConfirmCard
+            args={args}
+            respond={respond}
+            disabled={status !== ToolCallStatus.Executing}
+            onConfirmAccepted={(confirmedBrief) => {
+              setBrief((current) => ({
+                rawNeed: confirmedBrief.rawNeed ?? current.rawNeed,
+                topic: confirmedBrief.topic ?? current.topic,
+                audience: confirmedBrief.audience ?? current.audience,
+                thesis: confirmedBrief.thesis ?? current.thesis,
+                materials: confirmedBrief.materials?.length ? mergeMaterials(confirmedBrief.materials, current.materials) : current.materials,
+                selectedDirection: confirmedBrief.selectedDirection ?? current.selectedDirection,
+              }));
+              setPhase("card");
+              flashCards(["raw", "topic", "audience", "thesis", "materials"]);
+              showToast("写作意图卡片已生成");
+            }}
+            onContinueRequested={() => showToast("可以继续补充澄清")}
+          />
+        );
+      },
+    },
+    [setBrief, setPhase, flashCards, showToast],
   );
 
   useFrontendTool(
@@ -181,30 +218,6 @@ export function ClarifyCopilotTools({ brief, phase, setBrief, setPhase, showToas
       },
     },
     [flashCard],
-  );
-
-  useFrontendTool(
-    {
-      name: "saveWritingIntentCard",
-      description: "Save a complete writing intent brief and switch the left panel from guide state to the structured writing intent card.",
-      parameters: briefPatchSchema,
-      handler: async (nextBrief) => {
-        setBrief((current) => ({
-          rawNeed: nextBrief.rawNeed ?? current.rawNeed,
-          topic: nextBrief.topic ?? current.topic,
-          audience: nextBrief.audience ?? current.audience,
-          thesis: nextBrief.thesis ?? current.thesis,
-          materials: nextBrief.materials?.length ? mergeMaterials(nextBrief.materials, current.materials) : current.materials,
-          selectedDirection: nextBrief.selectedDirection ?? current.selectedDirection,
-        }));
-        setPhase("card");
-        flashCards(["raw", "topic", "audience", "thesis", "materials"]);
-        showToast("写作意图卡片已生成");
-
-        return { ok: true, phase: "card" };
-      },
-    },
-    [setBrief, setPhase, flashCards, showToast],
   );
 
   return null;
