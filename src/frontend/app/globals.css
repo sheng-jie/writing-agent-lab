@@ -1763,22 +1763,10 @@
     background: linear-gradient(180deg, color-mix(in oklch, var(--fdc-surface) 88%, transparent), var(--fdc-surface)), var(--fdc-surface);
   }
 
-  .fdc-copilot-smoke {
-    min-height: 0;
-    flex: 1;
-    padding: 14px;
-  }
-
-  .fdc-copilot-smoke > * {
-    height: 100%;
-    min-height: 0;
-  }
-
   .fdc-copilot-scroll {
     overflow-y: auto;
   }
 
-  .fdc-copilot-message-view,
   .fdc-copilot-empty {
     min-height: 100%;
   }
@@ -1817,18 +1805,6 @@
     gap: 14px;
   }
 
-  .fdc-message {
-    display: grid;
-    max-width: 88%;
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .fdc-message.user {
-    align-self: flex-end;
-    grid-template-columns: minmax(0, 1fr) 34px;
-  }
-
   .fdc-avatar {
     display: grid;
     width: 34px;
@@ -1839,44 +1815,6 @@
     color: white;
     font-size: 13px;
     font-weight: 850;
-  }
-
-  .fdc-message.user .fdc-avatar {
-    grid-column: 2;
-    background: var(--fdc-ink);
-  }
-
-  .fdc-bubble {
-    border: 1px solid var(--fdc-border);
-    border-radius: 18px;
-    background: var(--fdc-surface);
-    padding: 12px 13px;
-  }
-
-  .fdc-message.user .fdc-bubble {
-    grid-row: 1;
-    grid-column: 1;
-    border-color: var(--fdc-ink);
-    background: var(--fdc-ink);
-    color: white;
-  }
-
-  .fdc-bubble p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.62;
-    white-space: pre-wrap;
-  }
-
-  .fdc-bubble span {
-    display: block;
-    margin-top: 7px;
-    color: var(--fdc-muted-2);
-    font-size: 12px;
-  }
-
-  .fdc-message.user .fdc-bubble span {
-    color: rgba(255, 255, 255, 0.68);
   }
 
   .fdc-welcome-message {
@@ -1978,8 +1916,8 @@
     animation: fdc-rise-in 0.22s ease both;
   }
 
-  .fdc-copilot-message-view .fdc-question-card,
-  .fdc-copilot-message-view .fdc-confirm-card {
+  .fdc-copilot-tool-scope .fdc-question-card,
+  .fdc-copilot-tool-scope .fdc-confirm-card {
     width: min(620px, calc(100% - 44px));
     max-width: calc(100% - 44px);
   }
@@ -2322,8 +2260,6 @@
     justify-content: flex-start;
   }
 
-  .fdc-message,
-  .fdc-message.user,
   .fdc-welcome-message,
   .fdc-question-card,
   .fdc-confirm-card {

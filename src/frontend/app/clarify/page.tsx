@@ -1,8 +1,9 @@
 "use client";
 
-import { CopilotChat, CopilotChatMessageView, CopilotKit, UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
+import { CopilotChatMessageView, CopilotKit, UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useRef, useState } from "react";
 
+import { FlowDraftAssistantMessage, FlowDraftUserMessage, flowDraftMessageViewClassName } from "./ChatMessages";
 import { ClarifyCopilotTools } from "./ClarifyCopilotTools";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +103,6 @@ export default function ClarifyPage() {
   }
 
   const statusText = phase === "initial" ? "等待输入原始想法" : phase === "card" ? "已保存到写作项目" : "动态澄清中";
-  const copilotMode = process.env.NEXT_PUBLIC_CLARIFY_COPILOT_MODE === "smoke" ? "smoke" : "shell";
 
   return (
     <main className="fd-clarify">
@@ -150,36 +150,12 @@ export default function ClarifyPage() {
             flashCard={flashCard}
             flashCards={flashCards}
           />
-          {copilotMode === "smoke" ? <CopilotSmokePanel /> : <CopilotShellPanel phase={phase} />}
+          <CopilotShellPanel phase={phase} />
         </CopilotKit>
       </section>
 
       <div className={cn("fdc-toast", toastVisible && "show")} role="status">{toast}</div>
     </main>
-  );
-}
-
-function CopilotSmokePanel() {
-  return (
-    <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
-      <div className="fdc-panel-header">
-        <div className="fdc-panel-title">
-          <h2>Agent 对话</h2>
-          <p>阶段 1：先用 CopilotKit 原生聊天面板验证 clarificationAgent 连接。</p>
-        </div>
-        <span className="fdc-agent-badge">CopilotKit Smoke</span>
-      </div>
-
-      <div className="fdc-copilot-smoke" aria-label="CopilotKit 连接烟测区">
-        <CopilotChat
-          agentId="clarificationAgent"
-          labels={{
-            welcomeMessageText: "告诉我你想写什么，我会先帮你澄清成结构化 Writing Brief。",
-            chatInputPlaceholder: "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…",
-          }}
-        />
-      </div>
-    </section>
   );
 }
 
@@ -225,9 +201,11 @@ function CopilotShellPanel({ phase }: { phase: "initial" | "clarifying" | "card"
       <div className="fdc-chat-scroll fdc-copilot-scroll" aria-label="会话历史滚动区">
         {agent.messages.length ? (
           <CopilotChatMessageView
-            className="fdc-copilot-message-view"
+            className={cn(flowDraftMessageViewClassName, "fdc-copilot-tool-scope")}
             messages={[...agent.messages]}
             isRunning={agent.isRunning}
+            userMessage={FlowDraftUserMessage}
+            assistantMessage={FlowDraftAssistantMessage}
           />
         ) : (
           <section className="fdc-copilot-empty" aria-label="CopilotKit 自定义外壳空状态">

@@ -1,0 +1,108 @@
+.messageView {
+  min-height: 100%;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  animation: fdc-rise-in 0.22s ease both;
+}
+
+.userRow {
+  align-self: flex-end;
+  grid-template-columns: minmax(0, 1fr) 34px;
+}
+
+.toolRow {
+  margin-block: 4px 6px;
+}
+
+.toolRow + .row {
+  margin-top: 2px;
+}
+
+.avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--fdc-accent), var(--fdc-blue));
+  color: white;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.userAvatar {
+  grid-column: 2;
+  background: var(--fdc-ink);
+}
+
+.userMessage {
+  grid-row: 1;
+  grid-column: 1;
+  align-items: flex-end !important;
+  min-width: 0;
+  padding-top: 0 !important;
+}
+
+.assistantMessage {
+  min-width: 0;
+}
+
+.assistantToolMessage :global(.cpk\:prose) {
+  display: none;
+}
+
+.assistantToolMessage :global(.fdc-question-card),
+.assistantToolMessage :global(.fdc-confirm-card) {
+  width: min(620px, 100%);
+  max-width: 100%;
+  margin: 0;
+}
+
+.assistantToolMessage :global([data-testid="copilot-tool-render"]) {
+  margin-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.assistantToolMessage :global([data-testid="copilot-tool-render"] > div) {
+  border-color: var(--fdc-border) !important;
+  border-radius: 16px !important;
+  background: color-mix(in oklch, var(--fdc-surface) 92%, var(--fdc-surface-soft)) !important;
+  padding: 12px 14px !important;
+}
+
+.bubble {
+  width: fit-content;
+  max-width: 100% !important;
+  border: 1px solid var(--fdc-border);
+  border-radius: 18px;
+  background: var(--fdc-surface);
+  color: var(--fdc-fg);
+  font-family: var(--fdc-font-body) !important;
+  font-size: 14px;
+  line-height: 1.62;
+  padding: 12px 13px;
+  white-space: pre-wrap;
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--fdc-ink) 5%, transparent);
+}
+
+.userBubble {
+  margin-left: auto;
+  border-color: var(--fdc-ink);
+  background: var(--fdc-ink);
+  color: white;
+}
+
+.assistantBubble :global(:where(p, ul, ol)) {
+  margin: 0;
+}
+
+.assistantBubble :global(:where(p + p, p + ul, p + ol, ul + p, ol + p)) {
+  margin-top: 8px;
+}
