@@ -1,6 +1,6 @@
 "use client";
 
-import { CopilotChat, CopilotKit } from "@copilotkit/react-core/v2";
+import { CopilotChat, CopilotChatMessageView, CopilotKit, UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -403,7 +403,7 @@ export default function ClarifyPage() {
   }
 
   const statusText = phase === "initial" ? "等待输入原始想法" : phase === "card" ? "已保存到写作项目" : questionCount ? `动态澄清中 · ${questionCount} / 3` : "等待确认生成卡片";
-  const useCopilotSmoke = process.env.NEXT_PUBLIC_CLARIFY_COPILOT_SMOKE !== "false";
+  const copilotMode = process.env.NEXT_PUBLIC_CLARIFY_COPILOT_MODE ?? "shell";
 
   return (
     <main className="fd-clarify">
@@ -441,27 +441,9 @@ export default function ClarifyPage() {
           ) : null}
         </aside>
 
-        {useCopilotSmoke ? (
+        {copilotMode !== "legacy" ? (
           <CopilotKit runtimeUrl="/api/copilotkit" agent="clarificationAgent" useSingleEndpoint showDevConsole>
-            <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
-              <div className="fdc-panel-header">
-                <div className="fdc-panel-title">
-                  <h2>Agent 对话</h2>
-                  <p>阶段 1：先用 CopilotKit 原生聊天面板验证 clarificationAgent 连接。</p>
-                </div>
-                <span className="fdc-agent-badge">CopilotKit Smoke</span>
-              </div>
-
-              <div className="fdc-copilot-smoke" aria-label="CopilotKit 连接烟测区">
-                <CopilotChat
-                  agentId="clarificationAgent"
-                  labels={{
-                    welcomeMessageText: "告诉我你想写什么，我会先帮你澄清成结构化 Writing Brief。",
-                    chatInputPlaceholder: "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…",
-                  }}
-                />
-              </div>
-            </section>
+            {copilotMode === "smoke" ? <CopilotSmokePanel /> : <CopilotShellPanel phase={phase} />}
           </CopilotKit>
         ) : (
           <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
@@ -513,6 +495,108 @@ export default function ClarifyPage() {
 
       <div className={cn("fdc-toast", toastVisible && "show")} role="status">{toast}</div>
     </main>
+  );
+}
+
+function CopilotSmokePanel() {
+  return (
+    <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
+      <div className="fdc-panel-header">
+        <div className="fdc-panel-title">
+          <h2>Agent 对话</h2>
+          <p>阶段 1：先用 CopilotKit 原生聊天面板验证 clarificationAgent 连接。</p>
+        </div>
+        <span className="fdc-agent-badge">CopilotKit Smoke</span>
+      </div>
+
+      <div className="fdc-copilot-smoke" aria-label="CopilotKit 连接烟测区">
+        <CopilotChat
+          agentId="clarificationAgent"
+          labels={{
+            welcomeMessageText: "告诉我你想写什么，我会先帮你澄清成结构化 Writing Brief。",
+            chatInputPlaceholder: "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…",
+          }}
+        />
+      </div>
+    </section>
+  );
+}
+
+function CopilotShellPanel({ phase }: { phase: "initial" | "clarifying" | "card" }) {
+  const { agent } = useAgent({
+    agentId: "clarificationAgent",
+    updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
+    throttleMs: 80,
+  });
+  const { copilotkit } = useCopilotKit();
+  const [input, setInput] = useState("");
+
+  async function sendCurrentInput() {
+    const text = input.trim();
+    if (!text || agent.isRunning) return;
+
+    setInput("");
+    agent.addMessage({
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+    });
+    await copilotkit.runAgent({ agent });
+  }
+
+  return (
+    <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
+      <div className="fdc-panel-header">
+        <div className="fdc-panel-title">
+          <h2>Agent 对话</h2>
+          <p>阶段 2：保留右侧面板结构，由 CopilotKit 管理消息与运行状态。</p>
+        </div>
+        <span className="fdc-agent-badge">{phase === "card" ? "Saved Intent" : agent.isRunning ? "Thinking" : "Intent Agent"}</span>
+      </div>
+
+      <div className="fdc-chat-scroll fdc-copilot-scroll" aria-label="会话历史滚动区">
+        {agent.messages.length ? (
+          <CopilotChatMessageView
+            className="fdc-copilot-message-view"
+            messages={[...agent.messages]}
+            isRunning={agent.isRunning}
+          />
+        ) : (
+          <section className="fdc-copilot-empty" aria-label="CopilotKit 自定义外壳空状态">
+            <div className="fdc-avatar">AI</div>
+            <div>
+              <h3>先说一个粗糙想法就可以。</h3>
+              <p>我会通过 CopilotKit 连接 clarificationAgent，逐步把原始想法澄清成 Writing Brief。</p>
+            </div>
+          </section>
+        )}
+      </div>
+
+      <div className="fdc-bottom-dock" aria-label="固定底部输入区">
+        <div className="fdc-composer">
+          <div className="fdc-composer-box">
+            <textarea
+              rows={1}
+              value={input}
+              disabled={agent.isRunning}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void sendCurrentInput();
+                }
+              }}
+              placeholder={agent.isRunning ? "Agent 正在思考…" : "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"}
+            />
+            <div className="fdc-mini-tools" aria-label="输入工具">
+              <button className="fdc-icon-btn" type="button" title="添加链接" disabled={agent.isRunning} onClick={() => setInput((value) => `${value ? `${value} ` : ""}https://`)}>＋</button>
+              <button className="fdc-icon-btn" type="button" title="清空输入" disabled={agent.isRunning} onClick={() => setInput("")}>⌫</button>
+            </div>
+          </div>
+          <button className="fdc-send-btn" type="button" aria-label={agent.isRunning ? "停止" : "发送"} onClick={() => agent.isRunning ? agent.abortRun() : void sendCurrentInput()}>{agent.isRunning ? "■" : "↑"}</button>
+        </div>
+      </div>
+    </section>
   );
 }
 
