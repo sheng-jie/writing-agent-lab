@@ -1,5 +1,6 @@
 "use client";
 
+import { CopilotChat, CopilotKit } from "@copilotkit/react-core/v2";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -402,6 +403,7 @@ export default function ClarifyPage() {
   }
 
   const statusText = phase === "initial" ? "等待输入原始想法" : phase === "card" ? "已保存到写作项目" : questionCount ? `动态澄清中 · ${questionCount} / 3` : "等待确认生成卡片";
+  const useCopilotSmoke = process.env.NEXT_PUBLIC_CLARIFY_COPILOT_SMOKE !== "false";
 
   return (
     <main className="fd-clarify">
@@ -439,50 +441,74 @@ export default function ClarifyPage() {
           ) : null}
         </aside>
 
-        <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
-          <div className="fdc-panel-header">
-            <div className="fdc-panel-title">
-              <h2>Agent 对话</h2>
-              <p>首条 Welcome 卡片默认在顶部；中间会话历史滚动；底部输入框固定。</p>
-            </div>
-            <span className="fdc-agent-badge">{phase === "card" ? "Saved Intent" : "Intent Agent"}</span>
-          </div>
-
-          <div className="fdc-chat-scroll" ref={chatScrollRef} aria-label="会话历史滚动区">
-            <div className="fdc-chat-stack" aria-live="polite">
-              {chatItems.map((item) => {
-                if (item.kind === "welcome") return <WelcomeCard key={item.id} item={item} onExample={handleExample} />;
-                if (item.kind === "message") return <ChatMessage key={item.id} item={item} />;
-                if (item.kind === "question") return <QuestionCard key={item.id} item={item} onDirection={selectDirection} onAudience={selectAudience} onMaterial={selectMaterial} />;
-                return <ConfirmCard key={item.id} item={item} brief={brief} onConfirm={confirmCard} onContinue={continueClarifying} />;
-              })}
-            </div>
-          </div>
-
-          <div className="fdc-bottom-dock" aria-label="固定底部输入区">
-            <div className="fdc-composer">
-              <div className="fdc-composer-box">
-                <textarea
-                  rows={1}
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      sendCurrentInput();
-                    }
-                  }}
-                  placeholder="输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"
-                />
-                <div className="fdc-mini-tools" aria-label="输入工具">
-                  <button className="fdc-icon-btn" type="button" title="添加链接" onClick={() => setInput((value) => `${value ? `${value} ` : ""}https://`)}>＋</button>
-                  <button className="fdc-icon-btn" type="button" title="清空输入" onClick={() => setInput("")}>⌫</button>
+        {useCopilotSmoke ? (
+          <CopilotKit runtimeUrl="/api/copilotkit" agent="clarificationAgent" useSingleEndpoint showDevConsole>
+            <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
+              <div className="fdc-panel-header">
+                <div className="fdc-panel-title">
+                  <h2>Agent 对话</h2>
+                  <p>阶段 1：先用 CopilotKit 原生聊天面板验证 clarificationAgent 连接。</p>
                 </div>
+                <span className="fdc-agent-badge">CopilotKit Smoke</span>
               </div>
-              <button className="fdc-send-btn" type="button" aria-label="发送" onClick={sendCurrentInput}>↑</button>
+
+              <div className="fdc-copilot-smoke" aria-label="CopilotKit 连接烟测区">
+                <CopilotChat
+                  agentId="clarificationAgent"
+                  labels={{
+                    welcomeMessageText: "告诉我你想写什么，我会先帮你澄清成结构化 Writing Brief。",
+                    chatInputPlaceholder: "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…",
+                  }}
+                />
+              </div>
+            </section>
+          </CopilotKit>
+        ) : (
+          <section className="fdc-panel fdc-chat-panel" aria-label="右侧 Agent 对话区">
+            <div className="fdc-panel-header">
+              <div className="fdc-panel-title">
+                <h2>Agent 对话</h2>
+                <p>首条 Welcome 卡片默认在顶部；中间会话历史滚动；底部输入框固定。</p>
+              </div>
+              <span className="fdc-agent-badge">{phase === "card" ? "Saved Intent" : "Intent Agent"}</span>
             </div>
-          </div>
-        </section>
+
+            <div className="fdc-chat-scroll" ref={chatScrollRef} aria-label="会话历史滚动区">
+              <div className="fdc-chat-stack" aria-live="polite">
+                {chatItems.map((item) => {
+                  if (item.kind === "welcome") return <WelcomeCard key={item.id} item={item} onExample={handleExample} />;
+                  if (item.kind === "message") return <ChatMessage key={item.id} item={item} />;
+                  if (item.kind === "question") return <QuestionCard key={item.id} item={item} onDirection={selectDirection} onAudience={selectAudience} onMaterial={selectMaterial} />;
+                  return <ConfirmCard key={item.id} item={item} brief={brief} onConfirm={confirmCard} onContinue={continueClarifying} />;
+                })}
+              </div>
+            </div>
+
+            <div className="fdc-bottom-dock" aria-label="固定底部输入区">
+              <div className="fdc-composer">
+                <div className="fdc-composer-box">
+                  <textarea
+                    rows={1}
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        sendCurrentInput();
+                      }
+                    }}
+                    placeholder="输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"
+                  />
+                  <div className="fdc-mini-tools" aria-label="输入工具">
+                    <button className="fdc-icon-btn" type="button" title="添加链接" onClick={() => setInput((value) => `${value ? `${value} ` : ""}https://`)}>＋</button>
+                    <button className="fdc-icon-btn" type="button" title="清空输入" onClick={() => setInput("")}>⌫</button>
+                  </div>
+                </div>
+                <button className="fdc-send-btn" type="button" aria-label="发送" onClick={sendCurrentInput}>↑</button>
+              </div>
+            </div>
+          </section>
+        )}
       </section>
 
       <div className={cn("fdc-toast", toastVisible && "show")} role="status">{toast}</div>

@@ -1763,6 +1763,17 @@
     background: linear-gradient(180deg, color-mix(in oklch, var(--fdc-surface) 88%, transparent), var(--fdc-surface)), var(--fdc-surface);
   }
 
+  .fdc-copilot-smoke {
+    min-height: 0;
+    flex: 1;
+    padding: 14px;
+  }
+
+  .fdc-copilot-smoke > * {
+    height: 100%;
+    min-height: 0;
+  }
+
   .fdc-agent-badge {
     gap: 8px;
     border-radius: 999px;
