@@ -1774,6 +1774,15 @@
     min-height: 0;
   }
 
+  .fdc-copilot-scroll {
+    overflow-y: auto;
+  }
+
+  .fdc-copilot-message-view,
+  .fdc-copilot-empty {
+    min-height: 100%;
+  }
+
   .fdc-agent-badge {
     gap: 8px;
     border-radius: 999px;

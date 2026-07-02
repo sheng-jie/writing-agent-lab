@@ -531,17 +531,24 @@ function CopilotShellPanel({ phase }: { phase: "initial" | "clarifying" | "card"
   const { copilotkit } = useCopilotKit();
   const [input, setInput] = useState("");
 
+  async function submitToAgent(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || agent.isRunning) return;
+
+    agent.addMessage({
+      id: crypto.randomUUID(),
+      role: "user",
+      content: trimmed,
+    });
+    await copilotkit.runAgent({ agent });
+  }
+
   async function sendCurrentInput() {
     const text = input.trim();
     if (!text || agent.isRunning) return;
 
     setInput("");
-    agent.addMessage({
-      id: crypto.randomUUID(),
-      role: "user",
-      content: text,
-    });
-    await copilotkit.runAgent({ agent });
+    await submitToAgent(text);
   }
 
   return (
@@ -563,10 +570,33 @@ function CopilotShellPanel({ phase }: { phase: "initial" | "clarifying" | "card"
           />
         ) : (
           <section className="fdc-copilot-empty" aria-label="CopilotKit 自定义外壳空状态">
-            <div className="fdc-avatar">AI</div>
-            <div>
-              <h3>先说一个粗糙想法就可以。</h3>
-              <p>我会通过 CopilotKit 连接 clarificationAgent，逐步把原始想法澄清成 Writing Brief。</p>
+            <div className="fdc-welcome-message">
+              <div className="fdc-avatar">AI</div>
+              <section className="fdc-welcome-card fdc-interaction-card" aria-label="Welcome 引导卡片">
+                <div>
+                  <h3 className="fdc-welcome-title">先说一个粗糙想法就可以。</h3>
+                  <p className="fdc-welcome-copy">你可以直接输入，也可以点选一个示例。示例只会先填入底部输入框，确认后再由你手动发送给 Agent。</p>
+                  <div className="fdc-welcome-tags">
+                    <span>CopilotKit 驱动</span>
+                    <span>示例填入草稿</span>
+                    <span>支持链接素材识别</span>
+                  </div>
+                </div>
+                <div className="fdc-example-grid" aria-label="示例想法">
+                  {exampleIdeas.map((example) => (
+                    <button
+                      className="fdc-example-card"
+                      type="button"
+                      disabled={agent.isRunning}
+                      key={example.title}
+                      onClick={() => setInput(example.value)}
+                    >
+                      <strong>{example.title}</strong>
+                      <span>{example.copy}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
             </div>
           </section>
         )}
