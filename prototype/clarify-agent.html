@@ -1,0 +1,1885 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>写作意图识别｜左侧精简版</title>
+  <style>
+    :root {
+      --bg: oklch(98% 0.004 240);
+      --surface: oklch(100% 0 0);
+      --surface-soft: oklch(96% 0.007 245);
+      --fg: oklch(20% 0.02 240);
+      --muted: oklch(52% 0.018 240);
+      --muted-2: oklch(68% 0.014 240);
+      --border: oklch(90% 0.008 240);
+      --border-strong: oklch(82% 0.012 240);
+      --accent: oklch(56% 0.13 170);
+      --accent-strong: oklch(43% 0.13 170);
+      --accent-soft: oklch(94% 0.035 170);
+      --blue: oklch(58% 0.16 250);
+      --blue-soft: oklch(94% 0.035 250);
+      --shadow: 0 18px 50px rgba(20, 35, 55, 0.08);
+      --font-display: "Söhne", "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--fg);
+      font-family: var(--font-body);
+      background:
+        radial-gradient(circle at 12% 8%, oklch(91% 0.045 170 / 0.62), transparent 30%),
+        radial-gradient(circle at 92% 3%, oklch(94% 0.04 250 / 0.7), transparent 34%),
+        linear-gradient(180deg, var(--bg), oklch(97% 0.006 245));
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: default;
+    }
+
+    .app {
+      width: 100%;
+      height: 100dvh;
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 18px;
+      overflow: hidden;
+    }
+
+    .topbar {
+      min-height: 66px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: color-mix(in oklch, var(--surface) 88%, transparent);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 36px rgba(20, 35, 55, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 18px 12px 20px;
+      overflow: hidden;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 850;
+      letter-spacing: -0.05em;
+      box-shadow: 0 10px 28px oklch(56% 0.13 170 / 0.28);
+      flex: 0 0 auto;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 17px;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .status-pill {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px oklch(56% 0.13 170 / 0.12);
+    }
+
+    .ghost-btn,
+    .primary-btn {
+      min-height: 38px;
+      border-radius: 999px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border 0.16s ease;
+    }
+
+    .primary-btn {
+      background: var(--fg);
+      color: white;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+    }
+
+    .ghost-btn {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--fg);
+    }
+
+    .ghost-btn:hover:not(:disabled) {
+      background: var(--surface-soft);
+      border-color: var(--border-strong);
+    }
+
+    .ghost-btn[hidden] {
+      display: none;
+    }
+
+    .workspace {
+      min-height: 0;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(390px, 0.92fr) minmax(540px, 1.08fr);
+      gap: 18px;
+    }
+
+    .panel {
+      min-height: 0;
+      height: 100%;
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      background: color-mix(in oklch, var(--surface) 92%, transparent);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      flex: 0 0 auto;
+      min-height: 74px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: color-mix(in oklch, var(--surface) 72%, var(--surface-soft));
+    }
+
+    .panel-title {
+      min-width: 0;
+    }
+
+    .panel-title h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .panel-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .left-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: oklch(82% 0.012 240) transparent;
+    }
+
+    .left-body::-webkit-scrollbar,
+    .chat-scroll::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .left-body::-webkit-scrollbar-track,
+    .chat-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .left-body::-webkit-scrollbar-thumb,
+    .chat-scroll::-webkit-scrollbar-thumb {
+      background: color-mix(in oklch, var(--border-strong) 72%, transparent);
+      border-radius: 999px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+
+    .guide-state {
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto auto;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .guide-state.hidden {
+      display: none;
+    }
+
+    .guide-hero {
+      border: 1px solid oklch(86% 0.045 170);
+      border-radius: 24px;
+      padding: 20px;
+      background: linear-gradient(145deg, oklch(97% 0.022 170), oklch(98% 0.014 250));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .guide-hero::after {
+      content: "";
+      position: absolute;
+      right: -58px;
+      top: -58px;
+      width: 160px;
+      height: 160px;
+      border-radius: 999px;
+      background: radial-gradient(circle, oklch(80% 0.09 170 / 0.32), transparent 68%);
+      pointer-events: none;
+    }
+
+    .guide-kicker {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 10px;
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .guide-hero h3 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.08;
+      letter-spacing: -0.045em;
+      text-wrap: pretty;
+      max-width: 12em;
+    }
+
+    .guide-hero p {
+      position: relative;
+      z-index: 1;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+      max-width: 38ch;
+    }
+
+    .guide-steps {
+      display: grid;
+      gap: 8px;
+    }
+
+    .guide-step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 11px;
+      background: var(--surface-soft);
+      color: var(--accent-strong);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .guide-step strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.25;
+      margin-bottom: 2px;
+    }
+
+    .guide-step span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .intent-state {
+      display: none;
+    }
+
+    .intent-state.visible {
+      display: block;
+      animation: riseIn 0.28s ease both;
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .intent-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .intent-card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      padding: 16px;
+      transition: border 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .intent-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 12px 30px rgba(20, 35, 55, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .intent-card.updated {
+      animation: cardGlow 0.9s ease;
+    }
+
+    @keyframes cardGlow {
+      0% {
+        box-shadow: 0 0 0 0 oklch(56% 0.13 170 / 0);
+        border-color: var(--border);
+      }
+      34% {
+        box-shadow: 0 0 0 5px oklch(56% 0.13 170 / 0.16);
+        border-color: var(--accent);
+      }
+      100% {
+        box-shadow: none;
+        border-color: var(--border);
+      }
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .card-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .card-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      background: var(--surface-soft);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .card-state {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .editable {
+      min-height: 34px;
+      outline: none;
+      border-radius: 12px;
+      padding: 2px 0;
+      font-size: 15px;
+      line-height: 1.62;
+      letter-spacing: -0.01em;
+      color: var(--fg);
+    }
+
+    .editable:focus {
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 11px;
+    }
+
+    .chip {
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chip.accent {
+      background: var(--accent-soft);
+      border-color: oklch(86% 0.05 170);
+      color: var(--accent-strong);
+    }
+
+    .material-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+    }
+
+    .material-list li {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: start;
+      gap: 9px;
+      padding: 10px;
+      border-radius: 14px;
+      background: var(--surface-soft);
+      border: 1px solid transparent;
+    }
+
+    .link-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .material-title {
+      display: block;
+      color: var(--fg);
+      font-size: 14px;
+      line-height: 1.35;
+      margin-bottom: 3px;
+    }
+
+    .material-url {
+      display: block;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.35;
+      word-break: break-all;
+    }
+
+    .tag {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      padding-top: 3px;
+    }
+
+    .card-summary {
+      flex: 0 0 auto;
+      display: none;
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .card-summary.visible {
+      display: block;
+    }
+
+    .saved-hint {
+      border: 1px solid oklch(86% 0.045 170);
+      border-radius: 18px;
+      padding: 13px 14px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .chat-panel {
+      min-height: 0;
+      background:
+        linear-gradient(180deg, color-mix(in oklch, var(--surface) 88%, transparent), var(--surface)),
+        var(--surface);
+    }
+
+    .agent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .agent-badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .chat-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 18px;
+      scrollbar-width: thin;
+      scrollbar-color: oklch(82% 0.012 240) transparent;
+      background:
+        linear-gradient(var(--surface), transparent 28px) top / 100% 42px no-repeat,
+        linear-gradient(transparent, var(--surface) 28px) bottom / 100% 42px no-repeat;
+    }
+
+    .chat-stack {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 14px;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      max-width: 88%;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      grid-template-columns: minmax(0, 1fr) 34px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      font-weight: 850;
+      font-size: 13px;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+    }
+
+    .message.user .avatar {
+      grid-column: 2;
+      background: var(--fg);
+    }
+
+    .bubble {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 12px 13px;
+      box-shadow: 0 8px 24px rgba(20, 35, 55, 0.045);
+    }
+
+    .message.user .bubble {
+      grid-column: 1;
+      grid-row: 1;
+      background: var(--fg);
+      color: white;
+      border-color: var(--fg);
+    }
+
+    .bubble p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.62;
+      white-space: pre-wrap;
+    }
+
+    .bubble .meta {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted-2);
+      font-size: 12px;
+    }
+
+    .message.user .meta {
+      color: rgba(255, 255, 255, 0.62);
+    }
+
+    .welcome-message {
+      max-width: 100%;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .welcome-card {
+      border: 1px solid oklch(84% 0.052 170);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 88% 12%, oklch(84% 0.08 250 / 0.26), transparent 34%),
+        linear-gradient(145deg, oklch(97% 0.022 170), oklch(98% 0.012 245));
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      box-shadow: 0 12px 32px rgba(20, 35, 55, 0.055);
+    }
+
+    .welcome-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 18px;
+      line-height: 1.18;
+      letter-spacing: -0.035em;
+    }
+
+    .welcome-copy {
+      margin: 6px 0 0;
+      max-width: 62ch;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .welcome-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .welcome-tag {
+      min-height: 26px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: color-mix(in oklch, white 72%, transparent);
+      border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .example-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .example-card {
+      min-height: 72px;
+      border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
+      border-radius: 16px;
+      background: color-mix(in oklch, var(--surface) 82%, transparent);
+      padding: 10px 11px;
+      text-align: left;
+      color: var(--fg);
+      transition: transform 0.16s ease, border 0.16s ease, background 0.16s ease;
+    }
+
+    .example-card:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: oklch(80% 0.07 170);
+      background: color-mix(in oklch, var(--accent-soft) 52%, white);
+    }
+
+    .example-card strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .example-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .question-card,
+    .confirm-card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 14px;
+      margin-left: 44px;
+      max-width: 88%;
+      background: color-mix(in oklch, var(--surface) 84%, var(--surface-soft));
+      animation: riseIn 0.22s ease both;
+    }
+
+    .confirm-card {
+      border-color: oklch(84% 0.06 170);
+      background: linear-gradient(145deg, var(--accent-soft), var(--blue-soft));
+    }
+
+    .question-card h3,
+    .confirm-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .question-card p,
+    .confirm-card p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .option-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .option-btn {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: left;
+      color: var(--fg);
+      transition: background 0.16s ease, border 0.16s ease, transform 0.16s ease;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      background: var(--accent-soft);
+      border-color: oklch(84% 0.05 170);
+      transform: translateY(-1px);
+    }
+
+    .option-btn.selected {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .option-btn strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .option-btn span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .interaction-card.locked {
+      position: relative;
+    }
+
+    .interaction-card.locked::after {
+      content: "已选择";
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: color-mix(in oklch, var(--surface) 84%, transparent);
+      border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+      color: var(--muted);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .interaction-card.locked button:not(.selected) {
+      opacity: 0.48;
+    }
+
+    .interaction-card.locked button {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .draft-table {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .draft-row {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 13px;
+      background: color-mix(in oklch, white 72%, transparent);
+      border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .draft-row span:first-child {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .bottom-dock {
+      flex: 0 0 auto;
+      border-top: 1px solid var(--border);
+      background: color-mix(in oklch, var(--surface) 94%, transparent);
+      box-shadow: 0 -12px 36px rgba(20, 35, 55, 0.04);
+    }
+
+    .composer {
+      padding: 12px 18px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      background: var(--surface);
+    }
+
+    .composer-box {
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface-soft);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 8px;
+      padding: 7px 8px 7px 13px;
+    }
+
+    .composer textarea {
+      width: 100%;
+      min-height: 32px;
+      max-height: 96px;
+      resize: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--fg);
+      line-height: 1.5;
+      padding: 5px 0;
+    }
+
+    .composer textarea::placeholder {
+      color: var(--muted-2);
+    }
+
+    .mini-tools {
+      display: flex;
+      gap: 6px;
+      padding-bottom: 2px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+    }
+
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 17px;
+      border: 0;
+      background: var(--accent);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      box-shadow: 0 12px 24px oklch(56% 0.13 170 / 0.24);
+    }
+
+    .toast {
+      position: fixed;
+      right: 28px;
+      bottom: 28px;
+      transform: translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      border: 1px solid var(--border);
+      background: var(--fg);
+      color: white;
+      border-radius: 16px;
+      padding: 11px 13px;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+      font-size: 13px;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        padding: 14px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+
+      .panel {
+        min-height: min(680px, calc(100dvh - 120px));
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .top-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .example-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 10px;
+        gap: 10px;
+      }
+
+      .topbar,
+      .panel-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .brand p {
+        white-space: normal;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .message,
+      .message.user,
+      .welcome-message,
+      .question-card,
+      .confirm-card {
+        max-width: 100%;
+      }
+
+      .question-card,
+      .confirm-card {
+        margin-left: 0;
+      }
+
+      .composer {
+        grid-template-columns: 1fr;
+      }
+
+      .send-btn {
+        width: 100%;
+      }
+
+      .draft-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">意</div>
+        <div>
+          <h1>写作意图识别</h1>
+          <p>从一句模糊想法开始，通过 Agent 澄清后沉淀为结构化写作意图卡片。</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="status-pill" id="statusPill"><span class="pulse"></span>等待输入原始想法</span>
+        <button class="ghost-btn" id="restartBtn" type="button" hidden>重新开始</button>
+      </div>
+    </header>
+
+    <section class="workspace" aria-label="写作意图识别工作区">
+      <aside class="panel" aria-label="左侧写作意图沉淀区">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2 id="leftTitle">写作意图沉淀区</h2>
+            <p id="leftSubtitle">确认前显示引导；确认后生成写作意图卡片。</p>
+          </div>
+        </div>
+
+        <div class="left-body">
+          <section class="guide-state" id="guideState" aria-label="引导说明">
+            <div class="guide-hero">
+              <p class="guide-kicker">Start</p>
+              <h3>先说想法，不用填表。</h3>
+              <p>在右侧输入一个粗糙想法。Agent 会追问并识别写作意图，确认后在这里生成卡片。</p>
+            </div>
+
+            <div class="guide-steps" aria-label="简要流程">
+              <div class="guide-step">
+                <div class="step-num">01</div>
+                <div>
+                  <strong>输入原始想法</strong>
+                  <span>一句话或一段模糊描述都可以。</span>
+                </div>
+              </div>
+              <div class="guide-step">
+                <div class="step-num">02</div>
+                <div>
+                  <strong>回答关键追问</strong>
+                  <span>最多 3 次，收敛主题、读者和观点。</span>
+                </div>
+              </div>
+              <div class="guide-step">
+                <div class="step-num">03</div>
+                <div>
+                  <strong>确认生成卡片</strong>
+                  <span>沉淀为可编辑的写作意图卡片。</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="intent-state" id="intentState" aria-label="结构化写作意图卡片">
+            <div class="intent-stack">
+              <article class="intent-card" data-card="raw">
+                <div class="card-head">
+                  <div class="card-label"><span class="card-index">01</span>原始需求</div>
+                  <span class="card-state">已确认</span>
+                </div>
+                <div class="editable" contenteditable="true" id="rawNeed"></div>
+                <div class="chips">
+                  <span class="chip accent">来自首轮输入</span>
+                  <span class="chip">可编辑</span>
+                </div>
+              </article>
+
+              <article class="intent-card" data-card="topic">
+                <div class="card-head">
+                  <div class="card-label"><span class="card-index">02</span>写作主题</div>
+                  <span class="card-state">已识别</span>
+                </div>
+                <div class="editable" contenteditable="true" id="topic"></div>
+                <div class="chips">
+                  <span class="chip">主题可继续收窄</span>
+                </div>
+              </article>
+
+              <article class="intent-card" data-card="audience">
+                <div class="card-head">
+                  <div class="card-label"><span class="card-index">03</span>目标读者</div>
+                  <span class="card-state">已明确</span>
+                </div>
+                <div class="editable" contenteditable="true" id="audience"></div>
+                <div class="chips">
+                  <span class="chip">面向创作决策</span>
+                </div>
+              </article>
+
+              <article class="intent-card" data-card="thesis">
+                <div class="card-head">
+                  <div class="card-label"><span class="card-index">04</span>核心观点</div>
+                  <span class="card-state">已提炼</span>
+                </div>
+                <div class="editable" contenteditable="true" id="thesis"></div>
+                <div class="chips">
+                  <span class="chip accent">文章主论点</span>
+                </div>
+              </article>
+
+              <article class="intent-card" data-card="materials">
+                <div class="card-head">
+                  <div class="card-label"><span class="card-index">05</span>素材清单</div>
+                  <span class="card-state">已关联</span>
+                </div>
+                <ul class="material-list" id="materialList"></ul>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <footer class="card-summary" id="cardSummary">
+          <div class="saved-hint">写作意图卡片已保存到当前写作项目。你仍可以在右侧继续对话，新的澄清结果会同步更新卡片。</div>
+        </footer>
+      </aside>
+
+      <section class="panel chat-panel" aria-label="右侧 Agent 对话区">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Agent 对话</h2>
+            <p>首条 Welcome 卡片默认在顶部；中间会话历史滚动；底部输入框固定。</p>
+          </div>
+          <span class="agent-badge" id="agentBadge">Intent Agent</span>
+        </div>
+
+        <div class="chat-scroll" id="chatScroll" aria-label="会话历史滚动区">
+          <div class="chat-stack" id="chatStack" aria-live="polite"></div>
+        </div>
+
+        <div class="bottom-dock" aria-label="固定底部输入区">
+          <div class="composer">
+            <div class="composer-box">
+              <textarea id="composerInput" rows="1" placeholder="输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"></textarea>
+              <div class="mini-tools" aria-label="输入工具">
+                <button class="icon-btn" type="button" id="attachBtn" title="添加链接">＋</button>
+                <button class="icon-btn" type="button" id="clearBtn" title="清空输入">⌫</button>
+              </div>
+            </div>
+            <button class="send-btn" id="sendBtn" type="button" aria-label="发送">↑</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status">已更新</div>
+
+  <script>
+    const state = {
+      phase: "initial",
+      questionCount: 0,
+      selectedDirection: "",
+      rawNeed: "",
+      topic: "",
+      audience: "",
+      thesis: "",
+      materials: []
+    };
+
+    const presets = {
+      method: {
+        user: "我更想做成方法论型，让读者可以照着操作。",
+        topic: "如何用 AI Agent 澄清选题：把模糊灵感变成可写文章的 5 步方法",
+        audience: "刚开始做自媒体、经常卡在选题阶段的个人创作者和知识博主",
+        thesis: "AI Agent 的真正价值，是通过连续追问把“我大概想写点什么”转化为主题、读者、观点、素材和结构，而不是跳过思考直接生成正文。",
+        materials: [
+          { title: "用户输入中提到的原始想法片段", url: "conversation://initial-idea", type: "对话素材" },
+          { title: "AI 写作工具与创作流程相关资料", url: "https://openai.com/research/", type: "联网资料" },
+          { title: "内容创作者工作流与产品实践参考", url: "https://developers.googleblog.com/", type: "联网资料" }
+        ]
+      },
+      product: {
+        user: "我想解释这个写作意图识别页面为什么是写作工作台的第一步。",
+        topic: "为什么写作工作台需要写作意图识别：从模糊想法到结构化项目",
+        audience: "内容产品设计者、AI 写作工具用户、希望搭建个人写作系统的创作者",
+        thesis: "写作工作台的第一价值不是直接生成更多文本，而是建立一个能承接模糊想法、持续追问并沉淀结构化意图的入口。",
+        materials: [
+          { title: "当前页面需求澄清对话", url: "conversation://requirements-thread", type: "对话素材" },
+          { title: "AI 产品交互与开发者生态资料", url: "https://developers.googleblog.com/", type: "联网资料" },
+          { title: "AI Agent 与写作辅助相关资料", url: "https://openai.com/research/", type: "联网资料" }
+        ]
+      },
+      opinion: {
+        user: "我想更强调一个观点：AI 写作不是代写，而是帮人想清楚。",
+        topic: "AI 写作的下一步：不是替你写，而是帮你想清楚",
+        audience: "关注 AI 工具、内容创作效率和个人知识管理的读者",
+        thesis: "真正有价值的 AI 写作助手，不是把模糊想法包装成流畅文字，而是先暴露问题、提出追问、帮助用户形成自己的判断。",
+        materials: [
+          { title: "用户关于“不是代写，而是澄清”的观点表达", url: "conversation://core-opinion", type: "对话素材" },
+          { title: "AI 研究与应用趋势资料", url: "https://openai.com/research/", type: "联网资料" },
+          { title: "创作者工具与开发者实践参考", url: "https://developers.googleblog.com/", type: "联网资料" }
+        ]
+      }
+    };
+
+    const chatScroll = document.getElementById("chatScroll");
+    const chatStack = document.getElementById("chatStack");
+    const composerInput = document.getElementById("composerInput");
+    const toast = document.getElementById("toast");
+    const statusPill = document.getElementById("statusPill");
+    const restartBtn = document.getElementById("restartBtn");
+    const guideState = document.getElementById("guideState");
+    const intentState = document.getElementById("intentState");
+    const cardSummary = document.getElementById("cardSummary");
+    const leftTitle = document.getElementById("leftTitle");
+    const leftSubtitle = document.getElementById("leftSubtitle");
+    const agentBadge = document.getElementById("agentBadge");
+
+    function scrollChatToTop() {
+      requestAnimationFrame(() => {
+        chatScroll.scrollTop = 0;
+      });
+    }
+
+    function scrollChatToBottom() {
+      requestAnimationFrame(() => {
+        chatScroll.scrollTop = chatScroll.scrollHeight;
+      });
+    }
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function setStatus(text) {
+      statusPill.innerHTML = '<span class="pulse"></span>' + text;
+    }
+
+    function lockInteractionCard(card) {
+      card.classList.add("locked");
+      card.querySelectorAll("button").forEach((button) => {
+        button.disabled = true;
+      });
+    }
+
+    function appendMessage(role, text, meta = "刚刚") {
+      const message = document.createElement("div");
+      message.className = "message " + role;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = role === "user" ? "你" : "AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+
+      const p = document.createElement("p");
+      p.textContent = text;
+
+      const m = document.createElement("span");
+      m.className = "meta";
+      m.textContent = meta;
+
+      bubble.appendChild(p);
+      bubble.appendChild(m);
+      message.appendChild(avatar);
+      message.appendChild(bubble);
+      chatStack.appendChild(message);
+      scrollChatToBottom();
+    }
+
+    function createWelcomeMessage() {
+      const wrap = document.createElement("div");
+      wrap.className = "welcome-message";
+
+      wrap.innerHTML = `
+        <div class="avatar">AI</div>
+        <section class="welcome-card interaction-card" aria-label="Welcome 引导卡片">
+          <div>
+            <h3 class="welcome-title">先说一个粗糙想法就可以。</h3>
+            <p class="welcome-copy">你不需要整理成字段。我会帮你判断：这篇文章想写什么、写给谁、核心观点是什么，以及有哪些可关联素材。</p>
+            <div class="welcome-tags">
+              <span class="welcome-tag">最多 3 次动态追问</span>
+              <span class="welcome-tag">确认后生成卡片</span>
+              <span class="welcome-tag">支持链接素材识别</span>
+            </div>
+          </div>
+
+          <div class="example-grid" aria-label="示例想法">
+            <button class="example-card" type="button" data-example="我想写一篇关于 AI Agent 怎么帮助内容创作者把模糊想法变成可发布文章的内容，但还不知道该从产品角度写，还是从方法论角度写。">
+              <strong>填入示例想法</strong>
+              <span>适合快速体验从模糊想法到写作意图卡片的流程。</span>
+            </button>
+            <button class="example-card" type="button" data-example="我最近在研究 AI 写作工具，想写一篇文章讨论为什么真正重要的不是自动生成，而是帮助创作者想清楚。">
+              <strong>观点型示例</strong>
+              <span>更适合沉淀一篇带明确主张的观点文章。</span>
+            </button>
+            <button class="example-card" type="button" data-example="我想写给刚开始做自媒体的人，帮他们解决有想法但不知道怎么变成选题的问题。可以参考 https://developers.googleblog.com/ 和 https://openai.com/research/ 。">
+              <strong>带链接示例</strong>
+              <span>用于演示素材清单如何关联用户输入链接。</span>
+            </button>
+          </div>
+        </section>
+      `;
+
+      chatStack.appendChild(wrap);
+
+      const card = wrap.querySelector(".interaction-card");
+      card.querySelectorAll("[data-example]").forEach((button) => {
+        button.addEventListener("click", () => {
+          composerInput.value = button.dataset.example;
+          composerInput.focus();
+          button.classList.add("selected");
+          lockInteractionCard(card);
+          showToast("已填入示例想法");
+        });
+      });
+
+      scrollChatToTop();
+    }
+
+    function extractUrls(text) {
+      return (text.match(/https?:\/\/[^\s，。；、)）]+/g) || []).map((url, index) => ({
+        title: index === 0 ? "用户输入的参考链接" : "用户补充的参考链接",
+        url,
+        type: "用户链接"
+      }));
+    }
+
+    function inferDraftFromRaw(text) {
+      state.rawNeed = text;
+      const urls = extractUrls(text);
+
+      if (/产品|页面|工作台|流程|Clarification|原型/.test(text)) {
+        Object.assign(state, {
+          topic: presets.product.topic,
+          audience: presets.product.audience,
+          thesis: presets.product.thesis,
+          materials: urls.length ? urls.concat(presets.product.materials) : presets.product.materials.slice()
+        });
+      } else if (/观点|不是|代写|想清楚|判断|表达/.test(text)) {
+        Object.assign(state, {
+          topic: presets.opinion.topic,
+          audience: presets.opinion.audience,
+          thesis: presets.opinion.thesis,
+          materials: urls.length ? urls.concat(presets.opinion.materials) : presets.opinion.materials.slice()
+        });
+      } else {
+        Object.assign(state, {
+          topic: presets.method.topic,
+          audience: presets.method.audience,
+          thesis: presets.method.thesis,
+          materials: urls.length ? urls.concat(presets.method.materials) : presets.method.materials.slice()
+        });
+      }
+    }
+
+    function createQuestionCard(step) {
+      const card = document.createElement("div");
+      card.className = "question-card interaction-card";
+
+      if (step === 1) {
+        card.innerHTML = `
+          <h3>追问 1 / 3：这篇文章更像哪种方向？</h3>
+          <p>我会根据你的选择收敛写作主题。左侧仍保持引导说明，不展示草稿。</p>
+          <div class="option-grid">
+            <button class="option-btn" type="button" data-preset="method">
+              <strong>方法论型</strong>
+              <span>让读者学会如何用 AI Agent 澄清选题、整理素材、形成文章结构。</span>
+            </button>
+            <button class="option-btn" type="button" data-preset="product">
+              <strong>产品解释型</strong>
+              <span>解释为什么写作工作台需要“写作意图识别”这个入口。</span>
+            </button>
+            <button class="option-btn" type="button" data-preset="opinion">
+              <strong>观点评论型</strong>
+              <span>表达“AI 写作不是代写，而是帮助人想清楚”的判断。</span>
+            </button>
+          </div>
+        `;
+      }
+
+      if (step === 2) {
+        card.innerHTML = `
+          <h3>追问 2 / 3：目标读者需要再收窄吗？</h3>
+          <p>如果读者越具体，后面的主题和观点会更稳定。</p>
+          <div class="option-grid">
+            <button class="option-btn" type="button" data-audience="creator">
+              <strong>新手自媒体作者</strong>
+              <span>有想法，但经常卡在选题、观点和素材整理上。</span>
+            </button>
+            <button class="option-btn" type="button" data-audience="operator">
+              <strong>内容运营 / 新媒体团队</strong>
+              <span>需要把零散需求快速转成可执行的内容 Brief。</span>
+            </button>
+            <button class="option-btn" type="button" data-audience="builder">
+              <strong>AI 写作产品设计者</strong>
+              <span>关注如何把 Agent 对话转化成可复用的产品结构。</span>
+            </button>
+          </div>
+        `;
+      }
+
+      if (step === 3) {
+        card.innerHTML = `
+          <h3>追问 3 / 3：素材来源优先使用哪类？</h3>
+          <p>素材清单会关联用户输入链接、对话片段，以及 Agent 根据意图提取的联网资料链接。</p>
+          <div class="option-grid">
+            <button class="option-btn" type="button" data-material="conversation">
+              <strong>优先使用对话素材</strong>
+              <span>保留原始想法、关键回答和需求澄清过程。</span>
+            </button>
+            <button class="option-btn" type="button" data-material="web">
+              <strong>优先使用联网资料</strong>
+              <span>补充 AI 写作、创作者工具、Agent 产品相关链接。</span>
+            </button>
+            <button class="option-btn" type="button" data-material="mixed">
+              <strong>对话素材 + 联网资料混合</strong>
+              <span>既保留用户输入，也关联外部参考链接。</span>
+            </button>
+          </div>
+        `;
+      }
+
+      chatStack.appendChild(card);
+      attachQuestionHandlers(card);
+      scrollChatToBottom();
+    }
+
+    function attachQuestionHandlers(scope) {
+      scope.querySelectorAll("[data-preset]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.preset;
+          const preset = presets[key];
+
+          button.classList.add("selected");
+          lockInteractionCard(scope);
+
+          state.selectedDirection = key;
+          Object.assign(state, {
+            topic: preset.topic,
+            audience: preset.audience,
+            thesis: preset.thesis,
+            materials: mergeMaterials(extractUrls(state.rawNeed), preset.materials)
+          });
+
+          appendMessage("user", preset.user, "回答追问 1");
+          appendMessage("agent", "收到。我会按这个方向收敛主题。接下来只再追问两个关键问题，避免澄清过程过长。", "继续澄清");
+          state.questionCount = 2;
+          setStatus("动态澄清中 · 2 / 3");
+          createQuestionCard(2);
+        });
+      });
+
+      scope.querySelectorAll("[data-audience]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const type = button.dataset.audience;
+          const map = {
+            creator: "刚开始做自媒体、经常卡在选题阶段的个人创作者和知识博主",
+            operator: "内容运营、新媒体团队，以及需要把零散需求整理成内容 Brief 的协作者",
+            builder: "AI 写作产品设计者、内容工具产品经理，以及关注 Agent 交互结构的团队"
+          };
+
+          button.classList.add("selected");
+          lockInteractionCard(scope);
+
+          state.audience = map[type];
+          appendMessage("user", button.querySelector("strong").textContent, "回答追问 2");
+          appendMessage("agent", "读者已经更明确。最后我需要确认素材来源，这会决定最终卡片里的材料清单如何组织。", "继续澄清");
+          state.questionCount = 3;
+          setStatus("动态澄清中 · 3 / 3");
+          createQuestionCard(3);
+        });
+      });
+
+      scope.querySelectorAll("[data-material]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const type = button.dataset.material;
+
+          button.classList.add("selected");
+          lockInteractionCard(scope);
+
+          appendMessage("user", button.querySelector("strong").textContent, "回答追问 3");
+
+          if (type === "conversation") {
+            state.materials = [
+              { title: "原始想法与需求澄清对话", url: "conversation://initial-idea", type: "对话素材" },
+              { title: "用户关于目标读者与写作方向的回答", url: "conversation://clarification-answers", type: "对话素材" }
+            ].concat(extractUrls(state.rawNeed));
+          } else if (type === "web") {
+            state.materials = mergeMaterials([], [
+              { title: "AI 写作与 Agent 能力相关资料", url: "https://openai.com/research/", type: "联网资料" },
+              { title: "创作者工具与开发者实践参考", url: "https://developers.googleblog.com/", type: "联网资料" }
+            ]);
+          } else {
+            state.materials = mergeMaterials(extractUrls(state.rawNeed), state.materials);
+          }
+
+          appendMessage("agent", "五个字段已经识别完整：原始需求、写作主题、目标读者、核心观点和素材清单。请确认是否沉淀为写作意图卡片。", "澄清完成");
+          setStatus("等待确认生成卡片");
+          showConfirmCard();
+        });
+      });
+    }
+
+    function mergeMaterials(primary, secondary) {
+      const seen = new Set();
+      return primary.concat(secondary).filter((item) => {
+        if (seen.has(item.url)) return false;
+        seen.add(item.url);
+        return true;
+      });
+    }
+
+    function showConfirmCard() {
+      const card = document.createElement("div");
+      card.className = "confirm-card interaction-card";
+
+      card.innerHTML = `
+        <h3>可以沉淀为写作意图卡片了</h3>
+        <p>Agent 已识别出完整字段。确认后，左侧将从引导说明切换为结构化卡片，并保存到当前写作项目。</p>
+        <div class="draft-table">
+          <div class="draft-row"><span>写作主题</span><span>${escapeHtml(state.topic)}</span></div>
+          <div class="draft-row"><span>目标读者</span><span>${escapeHtml(state.audience)}</span></div>
+          <div class="draft-row"><span>核心观点</span><span>${escapeHtml(state.thesis)}</span></div>
+        </div>
+        <div class="confirm-actions">
+          <button class="primary-btn" type="button" data-confirm="true">确认生成卡片</button>
+          <button class="ghost-btn" type="button" data-continue="true">继续补充一句</button>
+        </div>
+      `;
+
+      chatStack.appendChild(card);
+      scrollChatToBottom();
+
+      card.querySelector("[data-confirm]").addEventListener("click", () => {
+        card.querySelector("[data-confirm]").classList.add("selected");
+        lockInteractionCard(card);
+        confirmCard();
+      });
+
+      card.querySelector("[data-continue]").addEventListener("click", () => {
+        card.querySelector("[data-continue]").classList.add("selected");
+        lockInteractionCard(card);
+        appendMessage("user", "我想再补充一句。", "继续澄清");
+        appendMessage("agent", "可以。你可以直接输入补充内容。如果补充会影响主题、读者、观点或素材，我会在生成卡片时一并吸收。", "等待补充");
+        setStatus("等待补充内容");
+      });
+    }
+
+    function confirmCard() {
+      applyStateToCard();
+      guideState.classList.add("hidden");
+      intentState.classList.add("visible");
+      cardSummary.classList.add("visible");
+      restartBtn.hidden = false;
+
+      leftTitle.textContent = "写作意图卡片";
+      leftSubtitle.textContent = "由右侧 Agent 澄清确认后生成，可直接编辑；后续对话也可继续更新。";
+      setStatus("已保存到写作项目");
+      agentBadge.textContent = "Saved Intent";
+
+      state.phase = "card";
+      appendMessage("agent", "已生成并保存到当前写作项目。你可以继续在右侧补充，我会把新的澄清结果同步更新到左侧卡片。", "已沉淀");
+      showToast("写作意图卡片已生成");
+    }
+
+    function applyStateToCard() {
+      setField("rawNeed", state.rawNeed, "raw");
+      setField("topic", state.topic, "topic");
+      setField("audience", state.audience, "audience");
+      setField("thesis", state.thesis, "thesis");
+      renderMaterials();
+    }
+
+    function setField(id, value, cardName) {
+      const el = document.getElementById(id);
+      el.textContent = value || "—";
+      flashCard(cardName);
+    }
+
+    function renderMaterials() {
+      const list = document.getElementById("materialList");
+      list.innerHTML = "";
+
+      const materials = state.materials.length ? state.materials : [
+        { title: "原始需求与澄清对话", url: "conversation://initial-idea", type: "对话素材" }
+      ];
+
+      materials.forEach((item) => {
+        const li = document.createElement("li");
+
+        const dot = document.createElement("span");
+        dot.className = "link-dot";
+        dot.textContent = item.type === "用户链接" ? "U" : item.type === "联网资料" ? "W" : "C";
+
+        const body = document.createElement("span");
+        const title = document.createElement("span");
+        title.className = "material-title";
+        title.textContent = item.title;
+
+        const url = document.createElement("span");
+        url.className = "material-url";
+        url.textContent = item.url;
+
+        body.appendChild(title);
+        body.appendChild(url);
+
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = item.type;
+
+        li.appendChild(dot);
+        li.appendChild(body);
+        li.appendChild(tag);
+        list.appendChild(li);
+      });
+
+      flashCard("materials");
+    }
+
+    function flashCard(cardName) {
+      const card = document.querySelector('[data-card="' + cardName + '"]');
+      if (!card) return;
+      card.classList.remove("updated");
+      void card.offsetWidth;
+      card.classList.add("updated");
+    }
+
+    function handleInitialInput(text) {
+      state.phase = "clarifying";
+      inferDraftFromRaw(text);
+      appendMessage("user", text, "原始想法");
+      appendMessage("agent", "我已经捕捉到原始需求。接下来我最多追问 3 次。先确认第一点：这篇文章更像方法论、产品解释，还是观点评论？", "追问 1 / 3");
+      state.questionCount = 1;
+      setStatus("动态澄清中 · 1 / 3");
+      createQuestionCard(1);
+    }
+
+    function handleCardUpdate(text) {
+      appendMessage("user", text, "补充澄清");
+
+      const urls = extractUrls(text);
+      if (urls.length) {
+        state.materials = mergeMaterials(urls, state.materials);
+        renderMaterials();
+      }
+
+      let changed = [];
+
+      if (/读者|用户|人群|新手|创作者|运营|产品经理|团队/.test(text)) {
+        state.audience = text.replace(/^写给|^我想写给/, "");
+        setField("audience", state.audience, "audience");
+        changed.push("目标读者");
+      }
+
+      if (/主题|标题|选题|写一篇|方向/.test(text)) {
+        state.topic = text;
+        setField("topic", state.topic, "topic");
+        changed.push("写作主题");
+      }
+
+      if (/观点|主张|认为|不是|而是|核心|表达/.test(text)) {
+        state.thesis = text;
+        setField("thesis", state.thesis, "thesis");
+        changed.push("核心观点");
+      }
+
+      if (!changed.length && !urls.length) {
+        state.rawNeed = state.rawNeed + "\n补充：" + text;
+        setField("rawNeed", state.rawNeed, "raw");
+        changed.push("原始需求");
+      }
+
+      const changeText = changed.length ? changed.join("、") : "素材清单";
+      appendMessage("agent", "已根据你的补充更新左侧卡片：" + changeText + "。卡片仍保存在当前写作项目中。", "已同步更新");
+      showToast("已同步更新卡片");
+    }
+
+    function handleClarifyingSupplement(text) {
+      appendMessage("user", text, "补充说明");
+
+      const urls = extractUrls(text);
+      if (urls.length) {
+        state.materials = mergeMaterials(urls, state.materials);
+      }
+
+      if (/读者|用户|人群|新手|创作者|运营|产品经理|团队/.test(text)) {
+        state.audience = text.replace(/^写给|^我想写给/, "");
+      } else if (/主题|标题|选题|写一篇|方向/.test(text)) {
+        state.topic = text;
+      } else if (/观点|主张|认为|不是|而是|核心|表达/.test(text)) {
+        state.thesis = text;
+      } else if (/素材|案例|链接|资料|参考|https?:\/\//.test(text)) {
+        state.materials = mergeMaterials(urls, state.materials);
+      }
+
+      appendMessage("agent", "已吸收这条补充。当前五个字段已经足够完整，可以确认生成写作意图卡片。", "等待确认");
+      showConfirmCard();
+    }
+
+    function sendCurrentInput() {
+      const text = composerInput.value.trim();
+
+      if (!text) {
+        showToast("先输入一点原始想法");
+        return;
+      }
+
+      composerInput.value = "";
+
+      if (state.phase === "initial") {
+        handleInitialInput(text);
+        return;
+      }
+
+      if (state.phase === "card") {
+        handleCardUpdate(text);
+        return;
+      }
+
+      handleClarifyingSupplement(text);
+    }
+
+    function restart() {
+      state.phase = "initial";
+      state.questionCount = 0;
+      state.selectedDirection = "";
+      state.rawNeed = "";
+      state.topic = "";
+      state.audience = "";
+      state.thesis = "";
+      state.materials = [];
+
+      chatStack.innerHTML = "";
+      createWelcomeMessage();
+
+      guideState.classList.remove("hidden");
+      intentState.classList.remove("visible");
+      cardSummary.classList.remove("visible");
+      restartBtn.hidden = true;
+      leftTitle.textContent = "写作意图沉淀区";
+      leftSubtitle.textContent = "确认前显示引导；确认后生成写作意图卡片。";
+      agentBadge.textContent = "Intent Agent";
+      setStatus("等待输入原始想法");
+      showToast("已重新开始");
+      scrollChatToTop();
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", sendCurrentInput);
+
+    composerInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendCurrentInput();
+      }
+    });
+
+    document.getElementById("attachBtn").addEventListener("click", () => {
+      composerInput.value = (composerInput.value ? composerInput.value + " " : "") + "https://";
+      composerInput.focus();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      composerInput.value = "";
+      composerInput.focus();
+    });
+
+    restartBtn.addEventListener("click", restart);
+
+    window.addEventListener("resize", () => {
+      if (state.phase === "initial") scrollChatToTop();
+    });
+
+    createWelcomeMessage();
+  </script>
+</body>
+</html>
