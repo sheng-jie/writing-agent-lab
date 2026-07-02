@@ -3,6 +3,7 @@
 import { CopilotChat, CopilotChatMessageView, CopilotKit, UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useEffect, useRef, useState } from "react";
 
+import { ClarifyCopilotTools } from "./ClarifyCopilotTools";
 import { cn } from "@/lib/utils";
 
 type Material = {
@@ -443,6 +444,15 @@ export default function ClarifyPage() {
 
         {copilotMode !== "legacy" ? (
           <CopilotKit runtimeUrl="/api/copilotkit" agent="clarificationAgent" useSingleEndpoint showDevConsole>
+            <ClarifyCopilotTools
+              brief={brief}
+              phase={phase}
+              setBrief={setBrief}
+              setPhase={setPhase}
+              showToast={showToast}
+              flashCard={flashCard}
+              flashCards={flashCards}
+            />
             {copilotMode === "smoke" ? <CopilotSmokePanel /> : <CopilotShellPanel phase={phase} />}
           </CopilotKit>
         ) : (
