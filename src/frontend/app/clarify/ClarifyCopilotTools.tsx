@@ -1,8 +1,10 @@
 "use client";
 
-import { useAgentContext, useDefaultRenderTool, useFrontendTool } from "@copilotkit/react-core/v2";
+import { ToolCallStatus, useAgentContext, useDefaultRenderTool, useFrontendTool, useHumanInTheLoop } from "@copilotkit/react-core/v2";
 import { useMemo } from "react";
 import { z } from "zod";
+
+import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificationArgsSchema, type ClarificationArgs } from "./ClarificationQuestionCard";
 
 type Material = {
   title: string;
@@ -74,6 +76,29 @@ export function ClarifyCopilotTools({ brief, phase, setBrief, setPhase, showToas
   });
 
   useDefaultRenderTool();
+
+  useHumanInTheLoop<ClarificationArgs>(
+    {
+      name: "clarification",
+      description: "Render structured clarification questions and wait for the user's answers before continuing the writing brief flow.",
+      parameters: clarificationArgsSchema,
+      render: ({ args, status, respond }) => {
+        if (status === ToolCallStatus.InProgress) {
+          return <ClarificationQuestionPendingCard title={args.title} />;
+        }
+
+        return (
+          <ClarificationQuestionCard
+            args={args}
+            respond={respond}
+            disabled={status !== ToolCallStatus.Executing}
+            onAnswered={() => showToast("已提交澄清回答")}
+          />
+        );
+      },
+    },
+    [showToast],
+  );
 
   useFrontendTool(
     {

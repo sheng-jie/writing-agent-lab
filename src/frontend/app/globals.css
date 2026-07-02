@@ -1978,6 +1978,12 @@
     animation: fdc-rise-in 0.22s ease both;
   }
 
+  .fdc-copilot-message-view .fdc-question-card,
+  .fdc-copilot-message-view .fdc-confirm-card {
+    width: min(620px, calc(100% - 44px));
+    max-width: calc(100% - 44px);
+  }
+
   .fdc-confirm-card {
     border-color: oklch(82% 0.06 170);
     background: linear-gradient(145deg, var(--fdc-accent-soft), var(--fdc-blue-soft));
@@ -1996,6 +2002,89 @@
     color: var(--fdc-muted);
     font-size: 13px;
     line-height: 1.55;
+  }
+
+  .fdc-clarification-stack {
+    display: grid;
+    gap: 12px;
+  }
+
+  .fdc-clarification-question {
+    border: 1px solid color-mix(in oklch, var(--fdc-border) 78%, transparent);
+    border-radius: 16px;
+    background: color-mix(in oklch, var(--fdc-surface) 88%, transparent);
+    padding: 12px;
+  }
+
+  .fdc-clarification-question h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    color: var(--fdc-fg);
+    font-size: 13px;
+    letter-spacing: -0.01em;
+  }
+
+  .fdc-clarification-question h4 span {
+    display: inline-flex;
+    height: 22px;
+    min-width: 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--fdc-blue-soft);
+    color: var(--fdc-blue);
+    font-family: var(--fdc-font-mono);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .fd-clarify .fdc-clarification-textarea {
+    display: block;
+    width: 100%;
+    min-height: 112px;
+    resize: vertical;
+    border: 1px solid color-mix(in oklch, var(--fdc-border) 72%, var(--fdc-accent-soft));
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, color-mix(in oklch, var(--fdc-surface) 96%, var(--fdc-blue-soft)), var(--fdc-surface));
+    color: var(--fdc-fg);
+    font-size: 14px;
+    line-height: 1.7;
+    outline: none;
+    padding: 12px 14px;
+    box-shadow: inset 0 1px 0 color-mix(in oklch, var(--fdc-surface) 86%, transparent);
+    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .fd-clarify .fdc-clarification-textarea::placeholder {
+    color: color-mix(in oklch, var(--fdc-muted) 86%, var(--fdc-fg));
+    opacity: 1;
+  }
+
+  .fd-clarify .fdc-clarification-textarea:hover:not(:disabled) {
+    border-color: color-mix(in oklch, var(--fdc-accent) 46%, var(--fdc-border));
+    background: var(--fdc-surface);
+  }
+
+  .fd-clarify .fdc-clarification-textarea:focus {
+    border-color: var(--fdc-accent);
+    background: var(--fdc-surface);
+    box-shadow:
+      0 0 0 4px color-mix(in oklch, var(--fdc-accent-soft) 78%, transparent),
+      0 8px 18px color-mix(in oklch, var(--fdc-ink) 7%, transparent);
+  }
+
+  .fd-clarify .fdc-clarification-textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+  }
+
+  .fdc-clarification-error {
+    margin: 10px 0 0;
+    color: oklch(50% 0.17 25) !important;
+    font-size: 13px;
   }
 
   .fdc-option-btn {
