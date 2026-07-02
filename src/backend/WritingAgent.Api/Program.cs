@@ -27,21 +27,26 @@ builder.Services.AddWritingAgents();
 // 使用 MEAI 的 AddChatClient 注册 IChatClient，而不是手动注册单例。
 builder.Services.AddChatClient(_ =>
 {
-    // DeepSeek API Key 只放在后端环境变量里，不进入前端。
-    var apiKey = Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY")
-        ?? throw new InvalidOperationException("请先设置 DEEPSEEK_API_KEY 环境变量。");
+    // OpenAI API Key 只放在后端环境变量里，不进入前端。
+    var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+        ?? throw new InvalidOperationException("请先设置 OPENAI_API_KEY 环境变量。");
 
-    // DeepSeek 使用 OpenAI 兼容接口，因此仍然通过 OpenAIClient 创建客户端。
+    var openAIBaseUrl = Environment.GetEnvironmentVariable("OPENAI_BASE_URL")
+        ?? throw new InvalidOperationException("请先设置 OPENAI_BASE_URL 环境变量。");
+
+    var model = Environment.GetEnvironmentVariable("OPENAI_MODEL") ?? throw new InvalidOperationException("请先设置 OPENAI_MODEL 环境变量。");
+
+    // 使用 OpenAI 兼容接口，因此仍然通过 OpenAIClient 创建客户端。
     var openAIClient = new OpenAIClient(
         new ApiKeyCredential(apiKey),
         new OpenAIClientOptions
         {
-            // 指向 DeepSeek 的 OpenAI-compatible endpoint。
-            Endpoint = new Uri("https://api.deepseek.com")
+            // 指向 OpenAI 的 OpenAI-compatible endpoint。
+            Endpoint = new Uri(openAIBaseUrl)
         });
 
     return openAIClient
-        .GetChatClient("deepseek-chat")
+        .GetChatClient(model)
         .AsIChatClient();
 });
 
