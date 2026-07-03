@@ -54,27 +54,11 @@
   min-width: 0;
 }
 
-.assistantToolMessage :global(.cpk\:prose) {
-  display: none;
-}
-
 .assistantToolMessage :global(.fdc-question-card),
 .assistantToolMessage :global(.fdc-confirm-card) {
   width: min(620px, 100%);
   max-width: 100%;
   margin: 0;
-}
-
-.assistantToolMessage :global([data-testid="copilot-tool-render"]) {
-  margin-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-.assistantToolMessage :global([data-testid="copilot-tool-render"] > div) {
-  border-color: var(--fdc-border) !important;
-  border-radius: 16px !important;
-  background: color-mix(in oklch, var(--fdc-surface) 92%, var(--fdc-surface-soft)) !important;
-  padding: 12px 14px !important;
 }
 
 .bubble {

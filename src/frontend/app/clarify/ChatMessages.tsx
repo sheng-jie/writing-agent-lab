@@ -42,6 +42,7 @@ export const FlowDraftAssistantMessage = Object.assign(function FlowDraftAssista
         <CopilotChatAssistantMessage
           {...props}
           className={cn(styles.assistantMessage, styles.assistantToolMessage, props.className)}
+          markdownRenderer={() => null}
           toolbar={() => null}
         />
       </div>

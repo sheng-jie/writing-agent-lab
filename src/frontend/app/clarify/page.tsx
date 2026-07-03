@@ -1,8 +1,9 @@
 "use client";
 
 import { CopilotChatMessageView, CopilotKit, UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import "./clarify.css";
 import { FlowDraftAssistantMessage, FlowDraftUserMessage, flowDraftMessageViewClassName } from "./ChatMessages";
 import { ClarifyCopilotTools } from "./ClarifyCopilotTools";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,45 @@ const exampleIdeas = [
   },
 ] as const;
 
+const intentCardConfigs = [
+  {
+    name: "raw",
+    index: "01",
+    label: "原始需求",
+    state: "已确认",
+    briefKey: "rawNeed",
+    chips: ["来自首轮输入", "可编辑"],
+    accentChip: true,
+  },
+  {
+    name: "topic",
+    index: "02",
+    label: "写作主题",
+    state: "已识别",
+    briefKey: "topic",
+    chips: ["主题可继续收窄"],
+    accentChip: false,
+  },
+  {
+    name: "audience",
+    index: "03",
+    label: "目标读者",
+    state: "已明确",
+    briefKey: "audience",
+    chips: ["面向创作决策"],
+    accentChip: false,
+  },
+  {
+    name: "thesis",
+    index: "04",
+    label: "核心观点",
+    state: "已提炼",
+    briefKey: "thesis",
+    chips: ["文章主论点"],
+    accentChip: true,
+  },
+] as const;
+
 function materialFallback(materials: Material[]) {
   return materials.length
     ? materials
@@ -67,6 +107,17 @@ export default function ClarifyPage() {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
   const [chatResetKey, setChatResetKey] = useState(0);
   const toastTimerRef = useRef<number | null>(null);
+  const flashTimerIdsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+      flashTimerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      flashTimerIdsRef.current = [];
+    };
+  }, []);
 
   function showToast(text: string) {
     setToast(text);
@@ -81,13 +132,15 @@ export default function ClarifyPage() {
       next.add(name);
       return next;
     });
-    window.setTimeout(() => {
+    const timerId = window.setTimeout(() => {
       setUpdatedCards((current) => {
         const next = new Set(current);
         next.delete(name);
         return next;
       });
+      flashTimerIdsRef.current = flashTimerIdsRef.current.filter((id) => id !== timerId);
     }, 920);
+    flashTimerIdsRef.current.push(timerId);
   }
 
   function flashCards(names: string[]) {
@@ -140,7 +193,13 @@ export default function ClarifyPage() {
           ) : null}
         </aside>
 
-        <CopilotKit key={chatResetKey} runtimeUrl="/api/copilotkit" agent="clarificationAgent" useSingleEndpoint showDevConsole>
+        <CopilotKit
+          key={chatResetKey}
+          runtimeUrl="/api/copilotkit"
+          agent="clarificationAgent"
+          useSingleEndpoint
+          showDevConsole={process.env.NODE_ENV !== "production"}
+        >
           <ClarifyCopilotTools
             brief={brief}
             phase={phase}
@@ -198,74 +257,156 @@ function CopilotShellPanel({ phase }: { phase: "initial" | "clarifying" | "card"
         <span className="fdc-agent-badge">{phase === "card" ? "Saved Intent" : agent.isRunning ? "Thinking" : "Intent Agent"}</span>
       </div>
 
-      <div className="fdc-chat-scroll fdc-copilot-scroll" aria-label="会话历史滚动区">
-        {agent.messages.length ? (
-          <CopilotChatMessageView
-            className={cn(flowDraftMessageViewClassName, "fdc-copilot-tool-scope")}
-            messages={[...agent.messages]}
-            isRunning={agent.isRunning}
-            userMessage={FlowDraftUserMessage}
-            assistantMessage={FlowDraftAssistantMessage}
-          />
-        ) : (
-          <section className="fdc-copilot-empty" aria-label="CopilotKit 自定义外壳空状态">
-            <div className="fdc-welcome-message">
-              <div className="fdc-avatar">AI</div>
-              <section className="fdc-welcome-card fdc-interaction-card" aria-label="Welcome 引导卡片">
-                <div>
-                  <h3 className="fdc-welcome-title">先说一个粗糙想法就可以。</h3>
-                  <p className="fdc-welcome-copy">你可以直接输入，也可以点选一个示例。示例只会先填入底部输入框，确认后再由你手动发送给 Agent。</p>
-                  <div className="fdc-welcome-tags">
-                    <span>CopilotKit 驱动</span>
-                    <span>示例填入草稿</span>
-                    <span>支持链接素材识别</span>
-                  </div>
-                </div>
-                <div className="fdc-example-grid" aria-label="示例想法">
-                  {exampleIdeas.map((example) => (
-                    <button
-                      className="fdc-example-card"
-                      type="button"
-                      disabled={agent.isRunning}
-                      key={example.title}
-                      onClick={() => setInput(example.value)}
-                    >
-                      <strong>{example.title}</strong>
-                      <span>{example.copy}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </section>
-        )}
-      </div>
+      <CopilotConversationArea
+        hasMessages={agent.messages.length > 0}
+        isRunning={agent.isRunning}
+        messages={agent.messages}
+        onPickExample={(value) => setInput(value)}
+      />
 
-      <div className="fdc-bottom-dock" aria-label="固定底部输入区">
-        <div className="fdc-composer">
-          <div className="fdc-composer-box">
-            <textarea
-              rows={1}
-              value={input}
-              disabled={agent.isRunning}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void sendCurrentInput();
-                }
-              }}
-              placeholder={agent.isRunning ? "Agent 正在思考…" : "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"}
-            />
-            <div className="fdc-mini-tools" aria-label="输入工具">
-              <button className="fdc-icon-btn" type="button" title="添加链接" disabled={agent.isRunning} onClick={() => setInput((value) => `${value ? `${value} ` : ""}https://`)}>＋</button>
-              <button className="fdc-icon-btn" type="button" title="清空输入" disabled={agent.isRunning} onClick={() => setInput("")}>⌫</button>
+      <CopilotComposer
+        input={input}
+        isRunning={agent.isRunning}
+        onInputChange={setInput}
+        onSend={sendCurrentInput}
+        onAbort={() => agent.abortRun()}
+      />
+    </section>
+  );
+}
+
+function CopilotConversationArea({
+  hasMessages,
+  isRunning,
+  messages,
+  onPickExample,
+}: {
+  hasMessages: boolean;
+  isRunning: boolean;
+  messages: Parameters<typeof CopilotChatMessageView>[0]["messages"];
+  onPickExample: (value: string) => void;
+}) {
+  return (
+    <div className="fdc-chat-scroll fdc-copilot-scroll" aria-label="会话历史滚动区">
+      {hasMessages ? (
+        <CopilotChatMessageView
+          className={cn(flowDraftMessageViewClassName, "fdc-copilot-tool-scope")}
+          messages={[...(messages ?? [])]}
+          isRunning={isRunning}
+          userMessage={FlowDraftUserMessage}
+          assistantMessage={FlowDraftAssistantMessage}
+        />
+      ) : (
+        <CopilotEmptyState isRunning={isRunning} onPickExample={onPickExample} />
+      )}
+    </div>
+  );
+}
+
+function CopilotEmptyState({ isRunning, onPickExample }: { isRunning: boolean; onPickExample: (value: string) => void }) {
+  return (
+    <section className="fdc-copilot-empty" aria-label="CopilotKit 自定义外壳空状态">
+      <div className="fdc-welcome-message">
+        <div className="fdc-avatar">AI</div>
+        <section className="fdc-welcome-card fdc-interaction-card" aria-label="Welcome 引导卡片">
+          <div>
+            <h3 className="fdc-welcome-title">先说一个粗糙想法就可以。</h3>
+            <p className="fdc-welcome-copy">你可以直接输入，也可以点选一个示例。示例只会先填入底部输入框，确认后再由你手动发送给 Agent。</p>
+            <div className="fdc-welcome-tags">
+              <span>CopilotKit 驱动</span>
+              <span>示例填入草稿</span>
+              <span>支持链接素材识别</span>
             </div>
           </div>
-          <button className="fdc-send-btn" type="button" aria-label={agent.isRunning ? "停止" : "发送"} onClick={() => agent.isRunning ? agent.abortRun() : void sendCurrentInput()}>{agent.isRunning ? "■" : "↑"}</button>
-        </div>
+          <div className="fdc-example-grid" aria-label="示例想法">
+            {exampleIdeas.map((example) => (
+              <button
+                className="fdc-example-card"
+                type="button"
+                disabled={isRunning}
+                key={example.title}
+                onClick={() => onPickExample(example.value)}
+              >
+                <strong>{example.title}</strong>
+                <span>{example.copy}</span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </section>
+  );
+}
+
+function CopilotComposer({
+  input,
+  isRunning,
+  onInputChange,
+  onSend,
+  onAbort,
+}: {
+  input: string;
+  isRunning: boolean;
+  onInputChange: React.Dispatch<React.SetStateAction<string>>;
+  onSend: () => Promise<void>;
+  onAbort: () => void;
+}) {
+  return (
+    <div className="fdc-bottom-dock" aria-label="固定底部输入区">
+      <div className="fdc-composer">
+        <div className="fdc-composer-box">
+          <textarea
+            id="clarify-idea-input"
+            rows={1}
+            value={input}
+            disabled={isRunning}
+            onChange={(event) => onInputChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void onSend();
+              }
+            }}
+            placeholder={isRunning ? "Agent 正在思考…" : "输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"}
+          />
+          <div className="fdc-mini-tools" aria-label="输入工具">
+            <button
+              className="fdc-icon-btn"
+              type="button"
+              aria-label="插入链接前缀"
+              aria-controls="clarify-idea-input"
+              title="插入链接前缀"
+              disabled={isRunning}
+              onClick={() => onInputChange((value) => `${value ? `${value} ` : ""}https://`)}
+            >
+              ＋
+            </button>
+            <button
+              className="fdc-icon-btn"
+              type="button"
+              aria-label="清空输入内容"
+              aria-controls="clarify-idea-input"
+              title="清空输入内容"
+              disabled={isRunning}
+              onClick={() => onInputChange("")}
+            >
+              ⌫
+            </button>
+          </div>
+        </div>
+        <button
+          className="fdc-send-btn"
+          type="button"
+          aria-label={isRunning ? "停止生成" : "发送消息"}
+          aria-controls="clarify-idea-input"
+          aria-keyshortcuts="Enter"
+          title={isRunning ? "停止生成" : "发送消息 (Enter)"}
+          onClick={() => (isRunning ? onAbort() : void onSend())}
+        >
+          {isRunning ? "■" : "↑"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -302,18 +443,23 @@ function IntentCards({ brief, updatedCards, setBrief }: { brief: Brief; updatedC
   return (
     <section className="fdc-intent-state" aria-label="结构化写作意图卡片">
       <div className="fdc-intent-stack">
-        <IntentCard name="raw" index="01" label="原始需求" state="已确认" updated={updatedCards.has("raw")} chips={["来自首轮输入", "可编辑"]} accentChip>
-          <EditableText value={brief.rawNeed || "—"} onBlur={(value) => update("rawNeed", value)} />
-        </IntentCard>
-        <IntentCard name="topic" index="02" label="写作主题" state="已识别" updated={updatedCards.has("topic")} chips={["主题可继续收窄"]}>
-          <EditableText value={brief.topic || "—"} onBlur={(value) => update("topic", value)} />
-        </IntentCard>
-        <IntentCard name="audience" index="03" label="目标读者" state="已明确" updated={updatedCards.has("audience")} chips={["面向创作决策"]}>
-          <EditableText value={brief.audience || "—"} onBlur={(value) => update("audience", value)} />
-        </IntentCard>
-        <IntentCard name="thesis" index="04" label="核心观点" state="已提炼" updated={updatedCards.has("thesis")} chips={["文章主论点"]} accentChip>
-          <EditableText value={brief.thesis || "—"} onBlur={(value) => update("thesis", value)} />
-        </IntentCard>
+        {intentCardConfigs.map((cardConfig) => (
+          <IntentCard
+            key={cardConfig.name}
+            name={cardConfig.name}
+            index={cardConfig.index}
+            label={cardConfig.label}
+            state={cardConfig.state}
+            updated={updatedCards.has(cardConfig.name)}
+            chips={cardConfig.chips}
+            accentChip={cardConfig.accentChip}
+          >
+            <EditableText
+              value={brief[cardConfig.briefKey] || "—"}
+              onBlur={(value) => update(cardConfig.briefKey, value)}
+            />
+          </IntentCard>
+        ))}
         <article className={cn("fdc-intent-card", updatedCards.has("materials") && "updated")} data-card="materials">
           <div className="fdc-card-head">
             <div className="fdc-card-label"><span className="fdc-card-index">05</span>素材清单</div>
@@ -337,7 +483,7 @@ function IntentCards({ brief, updatedCards, setBrief }: { brief: Brief; updatedC
   );
 }
 
-function IntentCard({ name, index, label, state, updated, chips, accentChip, children }: { name: string; index: string; label: string; state: string; updated?: boolean; chips: string[]; accentChip?: boolean; children: React.ReactNode }) {
+function IntentCard({ name, index, label, state, updated, chips, accentChip, children }: { name: string; index: string; label: string; state: string; updated?: boolean; chips: readonly string[]; accentChip?: boolean; children: React.ReactNode }) {
   return (
     <article className={cn("fdc-intent-card", updated && "updated")} data-card={name}>
       <div className="fdc-card-head">
@@ -353,14 +499,25 @@ function IntentCard({ name, index, label, state, updated, chips, accentChip, chi
 }
 
 function EditableText({ value, onBlur }: { value: string; onBlur: (value: string) => void }) {
+  const [draft, setDraft] = useState(value === "—" ? "" : value);
+
+  useEffect(() => {
+    setDraft(value === "—" ? "" : value);
+  }, [value]);
+
+  function handleBlur() {
+    const trimmed = draft.trim();
+    onBlur(trimmed || "—");
+  }
+
   return (
-    <div
+    <textarea
       className="fdc-editable"
-      contentEditable
-      suppressContentEditableWarning
-      onBlur={(event) => onBlur(event.currentTarget.textContent || "")}
-    >
-      {value}
-    </div>
+      rows={1}
+      value={draft}
+      placeholder="—"
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={handleBlur}
+    />
   );
 }
