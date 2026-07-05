@@ -702,19 +702,13 @@
 
   .fdc-question-card,
   .fdc-confirm-card {
-    max-width: 88%;
-    margin-left: 44px;
+    width: 100%;
+    max-width: 620px;
     border: 1px solid var(--fdc-border);
     border-radius: 20px;
     background: color-mix(in oklch, var(--fdc-surface) 84%, var(--fdc-surface-soft));
     padding: 14px;
     animation: fdc-rise-in 0.22s ease both;
-  }
-
-  .fdc-copilot-tool-scope .fdc-question-card,
-  .fdc-copilot-tool-scope .fdc-confirm-card {
-    width: min(620px, calc(100% - 44px));
-    max-width: calc(100% - 44px);
   }
 
   .fdc-confirm-card {
@@ -771,6 +765,16 @@
     font-family: var(--fdc-font-mono);
     font-size: 11px;
     font-weight: 800;
+  }
+
+  .fdc-clarification-answer {
+    margin: 0;
+    border-radius: 12px;
+    background: var(--fdc-accent-soft);
+    color: var(--fdc-fg);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 10px 12px;
   }
 
   .fd-clarify .fdc-clarification-textarea {

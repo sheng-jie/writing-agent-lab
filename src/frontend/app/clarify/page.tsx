@@ -1,6 +1,7 @@
 "use client";
 
 import { CopilotKit } from "@copilotkit/react-core/v2";
+import { Fragment } from "react";
 
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,9 @@ function ClarifyWorkspace() {
   const statusText = brief.phase === "initial" ? "等待输入原始想法" : brief.phase === "card" ? "已保存到写作项目" : "动态澄清中";
 
   return (
-    <div key={brief.resetKey}>
+    // 用 Fragment 而不是 div 承载 resetKey：.fd-clarify 的 CSS Grid（grid-template-rows: auto minmax(0,1fr)）
+    // 依赖 header/section/toast 是它的直接子元素，多包一层 div 会让整个工作区失去高度约束而整页滚动。
+    <Fragment key={brief.resetKey}>
       <header className="fdc-topbar">
         <div className="fdc-brand">
           <div className="fdc-brand-mark" aria-hidden="true">意</div>
@@ -90,7 +93,7 @@ function ClarifyWorkspace() {
       </section>
 
       <div className={cn("fdc-toast", brief.toast.visible && "show")} role="status">{brief.toast.text}</div>
-    </div>
+    </Fragment>
   );
 }
 

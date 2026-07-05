@@ -45,7 +45,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
         return { ok: true, changedCards };
       },
     },
-    [phase, controller],
+    [],
   );
 
   useFrontendTool(
@@ -59,7 +59,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
         return { ok: true, added: materials.length };
       },
     },
-    [phase, controller],
+    [],
   );
 
   useFrontendTool(
@@ -72,7 +72,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
         return { ok: true, highlighted: cardName };
       },
     },
-    [controller],
+    [],
   );
 
   useHumanInTheLoop<ClarificationArgs>(
@@ -81,19 +81,20 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
       description: "Render structured clarification questions and wait for the user's answers before continuing the writing brief flow.",
       available: phase !== "card",
       parameters: clarificationArgsSchema,
-      render: ({ args, status, respond }) => (
+      render: ({ args, status, respond, result }) => (
         <InteractionCardShell status={status} pending={<ClarificationQuestionPendingCard title={args.title} />}>
           {/* InteractionCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
           <ClarificationQuestionCard
             args={args as unknown as ClarificationArgs}
             respond={respond}
             disabled={status !== "executing"}
+            result={status === "complete" ? result : undefined}
             onAnswered={() => controller.notify("已提交澄清回答")}
           />
         </InteractionCardShell>
       ),
     },
-    [phase, controller],
+    [],
   );
 
   useHumanInTheLoop<WritingIntentConfirmationArgs>(
@@ -115,7 +116,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
         </InteractionCardShell>
       ),
     },
-    [phase, controller],
+    [],
   );
 
   return null;
