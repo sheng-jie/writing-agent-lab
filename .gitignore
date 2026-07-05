@@ -443,4 +443,4 @@ FodyWeavers.xsd
 .DS_Store
 
 
-*.course
+course/
