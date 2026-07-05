@@ -1,5 +1,13 @@
 {
+	"scripts": {
+		"dev": "concurrently -k -n backend,frontend -c blue,green \"pnpm dev:backend\" \"pnpm dev:frontend\"",
+		"dev:backend": "dotnet run --project src/backend/WritingAgent.Api/WritingAgent.Api.csproj --launch-profile http",
+		"dev:frontend": "pnpm --dir src/frontend dev"
+	},
 	"dependencies": {
 		"openai": "^6.42.0"
+	},
+	"devDependencies": {
+		"concurrently": "^9.2.1"
 	}
 }
