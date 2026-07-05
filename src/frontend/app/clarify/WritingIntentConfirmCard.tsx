@@ -63,7 +63,7 @@ export function WritingIntentConfirmCard({ args, respond, disabled, onConfirmAcc
   }
 
   return (
-    <div className="fdc-confirm-card fdc-interaction-card">
+    <div className="fdc-confirm-card fdc-interaction-card w-full max-w-[620px]">
       <h3>{args.title ?? "可以沉淀为写作意图卡片了"}</h3>
       <p>{args.message ?? "Agent 已识别出完整字段。确认后，左侧将从引导说明切换为结构化卡片，并保存到当前写作项目。"}</p>
 
@@ -87,7 +87,7 @@ export function WritingIntentConfirmCard({ args, respond, disabled, onConfirmAcc
 
 export function WritingIntentConfirmPendingCard({ title }: { title?: string }) {
   return (
-    <div className="fdc-confirm-card fdc-interaction-card">
+    <div className="fdc-confirm-card fdc-interaction-card w-full max-w-[620px]">
       <h3>{title ?? "正在准备确认卡片"}</h3>
       <p>Agent 正在整理写作主题、目标读者和核心观点，请稍候…</p>
     </div>

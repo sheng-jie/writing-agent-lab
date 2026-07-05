@@ -5,7 +5,6 @@ import { useState } from "react";
 
 export interface AgentChatControllerOptions {
   agentId: string;
-  threadId?: string;
   onError?: (error: unknown) => void;
 }
 
@@ -13,10 +12,9 @@ export interface AgentChatControllerOptions {
  * 通用 Agent 对话通信层：封装 useAgent + useCopilotKit，
  * 提供发送、停止、输入框状态等能力，不感知任何具体业务。
  */
-export function useAgentChatController({ agentId, threadId, onError }: AgentChatControllerOptions) {
+export function useAgentChatController({ agentId, onError }: AgentChatControllerOptions) {
   const { agent } = useAgent({
     agentId,
-    threadId,
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 80,
   });

@@ -112,7 +112,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, onAnswered 
   }
 
   return (
-    <div className="fdc-question-card fdc-interaction-card">
+    <div className="fdc-question-card fdc-interaction-card w-full max-w-[620px]">
       <h3>{args.title ?? "我需要再确认几个关键信息"}</h3>
       <p>回答后 Agent 会继续澄清并更新写作意图。当前卡片由 CopilotKit human-in-the-loop 工具渲染。</p>
 
@@ -180,7 +180,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, onAnswered 
 
 export function ClarificationQuestionPendingCard({ title }: { title?: string }) {
   return (
-    <div className="fdc-question-card fdc-interaction-card">
+    <div className="fdc-question-card fdc-interaction-card w-full max-w-[620px]">
       <h3>{title ?? "正在准备澄清问题"}</h3>
       <p>Agent 正在组织需要确认的信息，请稍候…</p>
     </div>

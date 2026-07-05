@@ -25,7 +25,6 @@ export interface AgentChatEmptyStateConfig {
 
 export interface AgentChatPanelProps {
   agentId: string;
-  threadId?: string;
   className?: string;
   title: ReactNode;
   description?: ReactNode;
@@ -44,7 +43,6 @@ export interface AgentChatPanelProps {
  */
 export function AgentChatPanel({
   agentId,
-  threadId,
   className,
   title,
   description,
@@ -55,7 +53,7 @@ export function AgentChatPanel({
   onError,
   children,
 }: AgentChatPanelProps) {
-  const chat = useAgentChatController({ agentId, threadId, onError });
+  const chat = useAgentChatController({ agentId, onError });
 
   // 通用兜底渲染：所有接入页面统一具备，不必在各自 ToolHost 里重复调用。
   useDefaultRenderTool();
