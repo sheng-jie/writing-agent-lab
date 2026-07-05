@@ -16,7 +16,7 @@ export const AgentUserMessage = Object.assign(function AgentUserMessage(
   props: ComponentProps<typeof CopilotChatUserMessage>,
 ) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_34px] items-start gap-2.5 self-end">
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_34px] items-start gap-2.5 self-end">
       <CopilotChatUserMessage
         {...props}
         className={cn("col-start-1 row-start-1 min-w-0", props.className)}
@@ -50,7 +50,7 @@ export const AgentAssistantMessage = Object.assign(function AgentAssistantMessag
 
   if (!content && hasToolCalls) {
     return (
-      <div className="my-1 grid grid-cols-[34px_minmax(0,1fr)] items-start gap-2.5">
+      <div className="my-1 grid w-full grid-cols-[34px_minmax(0,1fr)] items-start gap-2.5">
         <Avatar size="sm">
           <AvatarFallback>AI</AvatarFallback>
         </Avatar>
@@ -65,7 +65,7 @@ export const AgentAssistantMessage = Object.assign(function AgentAssistantMessag
   }
 
   return (
-    <div className="grid grid-cols-[34px_minmax(0,1fr)] items-start gap-2.5">
+    <div className="grid w-full grid-cols-[34px_minmax(0,1fr)] items-start gap-2.5">
       <Avatar size="sm">
         <AvatarFallback>AI</AvatarFallback>
       </Avatar>

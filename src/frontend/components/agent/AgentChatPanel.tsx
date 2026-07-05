@@ -1,7 +1,7 @@
 "use client";
 
 import { CopilotChatMessageView, useDefaultRenderTool } from "@copilotkit/react-core/v2";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,18 @@ export function AgentChatPanel({
   children,
 }: AgentChatPanelProps) {
   const chat = useAgentChatController({ agentId, onError });
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 通用兜底渲染：所有接入页面统一具备，不必在各自 ToolHost 里重复调用。
   useDefaultRenderTool();
+
+  // CopilotChatMessageView 的自动滚动依赖库内部未对外导出的 ScrollElementContext
+  // （只在 CopilotChatView 组合组件里可用），我们自建滚动容器时需要自己维护滚动到底部。
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [chat.messages, chat.isRunning]);
 
   return (
     <section className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)} aria-label="Agent 对话区">
@@ -72,7 +81,7 @@ export function AgentChatPanel({
         </Badge>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="会话历史滚动区">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="会话历史滚动区">
         {chat.hasMessages ? (
           <CopilotChatMessageView
             className={agentMessageViewClassName}
