@@ -45,7 +45,7 @@ function mergeMaterials(primary: Material[], secondary: Material[]) {
  * 会话重启 key，以及把状态同步给 Agent 的 useAgentContext 调用。
  * 必须在 <CopilotKit> 后代组件中调用。
  */
-export function useClarifyBriefController() {
+export function useClarifyState() {
   const [phase, setPhase] = useState<Phase>("initial");
   const [brief, setBrief] = useState<Brief>(initialBrief);
   const [resetKey, setResetKey] = useState(0);
@@ -197,4 +197,4 @@ export function useClarifyBriefController() {
   };
 }
 
-export type ClarifyBriefController = ReturnType<typeof useClarifyBriefController>;
+export type ClarifyState = ReturnType<typeof useClarifyState>;

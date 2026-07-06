@@ -3,11 +3,11 @@
 import { useFrontendTool, useHumanInTheLoop } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 
-import { InteractionCardShell } from "@/components/agent/InteractionCardShell";
+import { AgentCardShell } from "@/components/agent/AgentCardShell";
 
 import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificationArgsSchema, type ClarificationArgs } from "./ClarificationQuestionCard";
 import { WritingIntentConfirmCard, WritingIntentConfirmPendingCard, writingIntentConfirmationArgsSchema, type WritingIntentConfirmationArgs } from "./WritingIntentConfirmCard";
-import type { ClarifyBriefController } from "./useClarifyBriefController";
+import type { ClarifyState } from "./useClarifyState";
 
 const materialSchema = z.object({
   title: z.string().min(1),
@@ -28,10 +28,10 @@ const intentCardNameSchema = z.enum(["raw", "topic", "audience", "thesis", "mate
 
 /**
  * `/clarify` 的业务 ToolHost：只负责工具注册（useFrontendTool / useHumanInTheLoop）。
- * 状态存储与 useAgentContext 同步已下沉到 useClarifyBriefController。
- * 挂载为 <AgentChatPanel> 的 children。
+ * 状态存储与 useAgentContext 同步已下沉到 useClarifyState。
+ * 挂载为 <AgentPanel> 的 children。
  */
-export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefController }) {
+export function ClarifyCopilotTools({ controller }: { controller: ClarifyState }) {
   const { phase } = controller;
 
   useFrontendTool(
@@ -82,8 +82,8 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
       available: phase !== "card",
       parameters: clarificationArgsSchema,
       render: ({ args, status, respond, result }) => (
-        <InteractionCardShell status={status} pending={<ClarificationQuestionPendingCard title={args.title} />}>
-          {/* InteractionCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
+        <AgentCardShell status={status} pending={<ClarificationQuestionPendingCard title={args.title} />}>
+          {/* AgentCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
           <ClarificationQuestionCard
             args={args as unknown as ClarificationArgs}
             respond={respond}
@@ -91,7 +91,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
             result={status === "complete" ? result : undefined}
             onAnswered={() => controller.notify("已提交澄清回答")}
           />
-        </InteractionCardShell>
+        </AgentCardShell>
       ),
     },
     [],
@@ -104,8 +104,8 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
       available: phase === "clarifying",
       parameters: writingIntentConfirmationArgsSchema,
       render: ({ args, status, respond }) => (
-        <InteractionCardShell status={status} pending={<WritingIntentConfirmPendingCard title={args.title} />}>
-          {/* InteractionCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
+        <AgentCardShell status={status} pending={<WritingIntentConfirmPendingCard title={args.title} />}>
+          {/* AgentCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
           <WritingIntentConfirmCard
             args={args as unknown as WritingIntentConfirmationArgs}
             respond={respond}
@@ -113,7 +113,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyBriefCo
             onConfirmAccepted={controller.confirmBrief}
             onContinueRequested={() => controller.notify("可以继续补充澄清")}
           />
-        </InteractionCardShell>
+        </AgentCardShell>
       ),
     },
     [],

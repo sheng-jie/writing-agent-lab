@@ -31,10 +31,15 @@ export const clarificationArgsSchema = z.object({
 
 export type ClarificationArgs = z.infer<typeof clarificationArgsSchema>;
 
+/**
+ * 提交给 Agent 的答案直接是可读文本：question 是问题原文，answer 是用户选中的
+ * 选项文案（多选用“、”拼接）或填写的文本，而不是 questionId/selectedOptionIds 这种
+ * 需要回查原始 options 才能读懂的结构。
+ */
 export type ClarificationAnswer = {
   questionId: string;
-  selectedOptionIds?: string[];
-  text?: string;
+  question: string;
+  answer: string;
 };
 
 export type ClarificationResponse = {
@@ -88,34 +93,32 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
   async function submit() {
     if (!respond || disabled) return;
 
-    const answers = args.questions.map((question) => {
+    const answers: ClarificationAnswer[] = args.questions.map((question) => {
       if (question.kind === "single_choice") {
-        const selected = singleSelected[question.id];
+        const selectedId = singleSelected[question.id];
+        const label = (question.options ?? []).find((option) => option.id === selectedId)?.label ?? "";
 
-        return {
-          questionId: question.id,
-          selectedOptionIds: selected ? [selected] : [],
-        };
+        return { questionId: question.id, question: question.title, answer: label };
       }
 
       if (question.kind === "multi_choice") {
-        return {
-          questionId: question.id,
-          selectedOptionIds: multiSelected[question.id] ?? [],
-        };
+        const selectedIds = multiSelected[question.id] ?? [];
+        const labels = selectedIds
+          .map((id) => (question.options ?? []).find((option) => option.id === id)?.label)
+          .filter((label): label is string => Boolean(label))
+          .join("、");
+
+        return { questionId: question.id, question: question.title, answer: labels };
       }
 
       return {
         questionId: question.id,
-        text: (textAnswers[question.id] ?? "").trim(),
+        question: question.title,
+        answer: (textAnswers[question.id] ?? "").trim(),
       };
     });
 
-    const hasEmptyRequiredAnswer = answers.some((answer) => {
-      const hasOptions = (answer.selectedOptionIds?.length ?? 0) > 0;
-      const hasText = Boolean(answer.text?.trim());
-      return !hasOptions && !hasText;
-    });
+    const hasEmptyRequiredAnswer = answers.some((answer) => !answer.answer.trim());
 
     if (hasEmptyRequiredAnswer) {
       setError("请先回答所有问题，再提交给 Agent。");
@@ -146,14 +149,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
           // 提交后优先用 result（Agent 消息历史里的权威数据）渲染只读摘要，
           // 而不是继续渲染本地 state 驱动、可能因重新渲染而显示为"未选中"的表单控件。
           if (disabled) {
-            const submittedAnswer = submittedAnswers?.get(question.id);
-            const answerText =
-              question.kind === "text"
-                ? submittedAnswer?.text?.trim() || "（未填写）"
-                : (submittedAnswer?.selectedOptionIds ?? [])
-                    .map((optionId) => (question.options ?? []).find((option) => option.id === optionId)?.label)
-                    .filter(Boolean)
-                    .join("、") || "（未选择）";
+            const answerText = submittedAnswers?.get(question.id)?.answer.trim() || "（未填写）";
 
             return (
               <section className="fdc-clarification-question" key={question.id}>

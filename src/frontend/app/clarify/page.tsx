@@ -3,13 +3,13 @@
 import { CopilotKit } from "@copilotkit/react-core/v2";
 import { Fragment } from "react";
 
-import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
+import { AgentPanel } from "@/components/agent/AgentPanel";
 import { cn } from "@/lib/utils";
 
 import "./clarify.css";
 import { ClarifyBriefPanel } from "./ClarifyBriefPanel";
 import { ClarifyCopilotTools } from "./ClarifyCopilotTools";
-import { useClarifyBriefController } from "./useClarifyBriefController";
+import { useClarifyState } from "./useClarifyState";
 
 const exampleIdeas = [
   {
@@ -20,8 +20,9 @@ const exampleIdeas = [
   },
   {
     title: "观点型示例",
-    copy: "更适合沉淀一篇带明确主张的观点文章。",
+    copy: "更适合沉淀一篇带明确主张的观点文章，点击直接发送给 Agent。",
     value: "我最近在研究 AI 写作工具，想写一篇文章讨论为什么真正重要的不是自动生成，而是帮助创作者想清楚。",
+    mode: "send" as const,
   },
   {
     title: "带链接示例",
@@ -46,10 +47,10 @@ export default function ClarifyPage() {
   );
 }
 
-// useClarifyBriefController 内部调用 useAgentContext，必须在 <CopilotKit> 后代组件中执行，
+// useClarifyState 内部调用 useAgentContext，必须在 <CopilotKit> 后代组件中执行，
 // 因此单独拆出这一层，page.tsx 本身不直接调用它。
 function ClarifyWorkspace() {
-  const brief = useClarifyBriefController();
+  const brief = useClarifyState();
   const statusText = brief.phase === "initial" ? "等待输入原始想法" : brief.phase === "card" ? "已保存到写作项目" : "动态澄清中";
 
   return (
@@ -73,7 +74,7 @@ function ClarifyWorkspace() {
       <section className="fdc-workspace" aria-label="写作意图识别工作区">
         <ClarifyBriefPanel controller={brief} />
 
-        <AgentChatPanel
+        <AgentPanel
           agentId="clarificationAgent"
           className="fdc-panel fdc-chat-panel"
           title="Agent 对话"
@@ -81,15 +82,15 @@ function ClarifyWorkspace() {
           placeholder="输入模糊原始想法，例如：我想写一篇关于 AI Agent 如何帮助创作者澄清选题的文章…"
           idleBadge={brief.phase === "card" ? "Saved Intent" : "Intent Agent"}
           runningBadge="Thinking"
-          emptyState={{
+          welcome={{
             title: "先说一个粗糙想法就可以。",
-            description: "你可以直接输入，也可以点选一个示例。示例只会先填入底部输入框，确认后再由你手动发送给 Agent。",
+            description: "你可以直接输入，也可以点选一个示例：填入示例先填入底部输入框供你确认，直接发送示例会立即发给 Agent。",
             examples: exampleIdeas,
           }}
           onError={() => brief.notify("Agent 出错了，请稍后重试")}
         >
           <ClarifyCopilotTools controller={brief} />
-        </AgentChatPanel>
+        </AgentPanel>
       </section>
 
       <div className={cn("fdc-toast", brief.toast.visible && "show")} role="status">{brief.toast.text}</div>
