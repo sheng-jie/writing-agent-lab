@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 import { AgentInput } from "./AgentInput";
-import { AgentAssistantMessage, AgentUserMessage, agentMessageViewClassName } from "./AgentMessageBubbles";
+import { AgentAssistantMessage, AgentUserMessage, agentMessageViewClassName } from "./AgentMessages";
 import { AgentWelcome, type AgentWelcomeConfig } from "./AgentWelcome";
-import { useAgentChat } from "./useAgentChatController";
+import { useAgentChat } from "./useAgentChat";
 
 export interface AgentPanelProps {
   agentId: string;
