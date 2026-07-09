@@ -2,6 +2,14 @@
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">
     <Project Path="src/backend/WritingAgent.Api/WritingAgent.Api.csproj" />
+    <Project Path="src/backend/WritingAgent.Application/WritingAgent.Application.csproj" />
     <Project Path="src/backend/WritingAgent.Console/WritingAgent.Console.csproj" />
+    <Project Path="src/backend/WritingAgent.Domain/WritingAgent.Domain.csproj" />
+    <Project Path="src/backend/WritingAgent.Infrastructure/WritingAgent.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/backend/">
+    <Project Path="tests/backend/WritingAgent.Architecture.Tests/WritingAgent.Architecture.Tests.csproj" />
+    <Project Path="tests/backend/WritingAgent.Domain.Tests/WritingAgent.Domain.Tests.csproj" />
   </Folder>
 </Solution>

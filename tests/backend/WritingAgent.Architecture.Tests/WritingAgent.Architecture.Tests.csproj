@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\WritingAgent.Domain\WritingAgent.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\WritingAgent.Application\WritingAgent.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\WritingAgent.Infrastructure\WritingAgent.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\WritingAgent.Api\WritingAgent.Api.csproj" />
+  </ItemGroup>
+
+</Project>
