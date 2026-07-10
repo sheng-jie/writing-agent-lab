@@ -17,11 +17,11 @@ public sealed class WritingWorkflowInstance
 
     public static WritingWorkflowInstance Start() => new(WritingWorkflowStage.CaptureIdea);
 
-    public void AdvanceTo(WritingWorkflowStage nextStage, StageArtifact artifact)
+    public void CompleteCurrentStage(StageArtifact artifact)
     {
-        if ((int)nextStage != (int)CurrentStage + 1)
+        if (CurrentStage == WritingWorkflowStage.Finalized)
         {
-            throw new DomainException("Writing workflow can only advance to the next stage.");
+            throw new DomainException("Finalized writing workflow cannot accept more stage artifacts.");
         }
 
         if (artifact.Stage != CurrentStage)
@@ -30,6 +30,6 @@ public sealed class WritingWorkflowInstance
         }
 
         artifacts.Add(artifact);
-        CurrentStage = nextStage;
+        CurrentStage = (WritingWorkflowStage)((int)CurrentStage + 1);
     }
 }
