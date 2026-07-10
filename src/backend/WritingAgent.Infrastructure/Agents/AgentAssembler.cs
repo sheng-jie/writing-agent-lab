@@ -42,6 +42,56 @@ public sealed class AgentAssembler(
         return agent;
     }
 
+    public void ValidateDefinitions(IEnumerable<AgentDefinition> definitions)
+    {
+        ArgumentNullException.ThrowIfNull(definitions);
+
+        var errors = definitions
+            .SelectMany(ValidateDefinition)
+            .ToArray();
+
+        if (errors.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Agent definition validation failed:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}");
+        }
+    }
+
+    private IReadOnlyList<string> ValidateDefinition(AgentDefinition definition)
+    {
+        var errors = new List<string>();
+
+        foreach (var toolName in definition.AllowedToolNames)
+        {
+            try
+            {
+                toolCatalog.ResolveTools([toolName]);
+            }
+            catch (InvalidOperationException exception)
+            {
+                errors.Add($"- Agent '{definition.Id}': tool '{toolName}' is invalid: {exception.Message}");
+            }
+        }
+
+        foreach (var skillName in definition.SkillNames)
+        {
+            var skillPath = GetSkillPath(skillName);
+            if (!Directory.Exists(skillPath))
+            {
+                errors.Add($"- Agent '{definition.Id}': skill '{skillName}' directory was not found at '{skillPath}'.");
+                continue;
+            }
+
+            var skillManifestPath = Path.Combine(skillPath, "SKILL.md");
+            if (!File.Exists(skillManifestPath))
+            {
+                errors.Add($"- Agent '{definition.Id}': skill '{skillName}' is missing '{skillManifestPath}'.");
+            }
+        }
+
+        return errors;
+    }
+
     private IReadOnlyList<AIContextProvider> BuildSkillProviders(IReadOnlyList<string> skillNames)
     {
         if (skillNames.Count == 0)
@@ -54,7 +104,7 @@ public sealed class AgentAssembler(
 
         foreach (var skillName in skillNames)
         {
-            var skillPath = Path.Combine(AppContext.BaseDirectory, "Skills", skillName);
+            var skillPath = GetSkillPath(skillName);
             if (!Directory.Exists(skillPath))
             {
                 throw new InvalidOperationException($"Unknown skill '{skillName}'.");
@@ -65,6 +115,9 @@ public sealed class AgentAssembler(
 
         return [providerBuilder.Build()];
     }
+
+    private static string GetSkillPath(string skillName) =>
+        Path.Combine(AppContext.BaseDirectory, "Skills", skillName);
 
     private static async Task<object?> RunFileSkillScriptAsync(
         AgentFileSkill skill,

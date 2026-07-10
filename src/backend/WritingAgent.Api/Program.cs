@@ -4,7 +4,9 @@ using Scalar.AspNetCore;
 using WritingAgent.Api.Agents;
 using WritingAgent.Api.Endpoints;
 using WritingAgent.Application;
+using WritingAgent.Application.Agents;
 using WritingAgent.Infrastructure;
+using WritingAgent.Infrastructure.Agents;
 using WritingAgent.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +24,10 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+	var definitions = scope.ServiceProvider.GetRequiredService<IEnumerable<AgentDefinition>>();
+	var agentAssembler = scope.ServiceProvider.GetRequiredService<AgentAssembler>();
+	agentAssembler.ValidateDefinitions(definitions);
+
 	var dbContext = scope.ServiceProvider.GetRequiredService<WritingAgentDbContext>();
 	await dbContext.Database.MigrateAsync();
 }
