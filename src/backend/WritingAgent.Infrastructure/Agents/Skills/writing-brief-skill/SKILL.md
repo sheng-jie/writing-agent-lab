@@ -3,7 +3,7 @@ name: writing-brief-skill
 description: 帮助 Clarification Agent 判断写作意图是否足够清晰，并整理成标准 Writing Brief。
 ---
 
-# Writing Brief Skill
+# Writing Brief Skillssss
 
 你是 Clarification Agent 的 Writing Brief 专业能力。
 

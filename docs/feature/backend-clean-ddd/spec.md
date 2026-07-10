@@ -212,7 +212,7 @@ Search/
 Responsibilities:
 
 - assemble `ChatClientAgent` from Application agent definitions;
-- load `.skills/{skillName}` declared by Application definitions;
+- load `Skills/{skillName}` declared by Application definitions;
 - construct `IChatClient` through OpenAI-compatible configuration;
 - call Tavily through `IHttpClientFactory`;
 - implement EF Core SQLite persistence for `Article`.
@@ -268,7 +268,7 @@ Agent skill declaration remains:
 ```text
 Application AgentDefinition.SkillNames
   -> Infrastructure AgentAssembler
-  -> .skills/{skillName}
+  -> Skills/{skillName}
 ```
 
 ## Article API

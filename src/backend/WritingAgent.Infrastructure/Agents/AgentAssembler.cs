@@ -54,7 +54,7 @@ public sealed class AgentAssembler(
 
         foreach (var skillName in skillNames)
         {
-            var skillPath = Path.Combine(AppContext.BaseDirectory, ".skills", skillName);
+            var skillPath = Path.Combine(AppContext.BaseDirectory, "Skills", skillName);
             if (!Directory.Exists(skillPath))
             {
                 throw new InvalidOperationException($"Unknown skill '{skillName}'.");

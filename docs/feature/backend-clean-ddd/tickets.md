@@ -95,7 +95,7 @@ Agents/Tools/AgentToolCatalog.cs
 Search/TavilySearchAgentTool.cs
 ```
 
-Keep `.skills/{skillName}` loading semantics unchanged.
+Keep `SkillNames`-based skill loading semantics unchanged while using `Skills/{skillName}` as the runtime directory.
 
 Add Infrastructure DI registration for:
 

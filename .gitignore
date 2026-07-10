@@ -445,3 +445,7 @@ FodyWeavers.xsd
 
 course/
 examples/
+
+*.db*
+
+*.idea
