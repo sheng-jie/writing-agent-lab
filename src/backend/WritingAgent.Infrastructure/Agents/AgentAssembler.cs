@@ -5,7 +5,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Tools.Shell;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using WritingAgent.Application.WritingWorkflows.Clarification;
+using WritingAgent.Application.Agents;
 using WritingAgent.Infrastructure.Agents.Tools;
 
 namespace WritingAgent.Infrastructure.Agents;

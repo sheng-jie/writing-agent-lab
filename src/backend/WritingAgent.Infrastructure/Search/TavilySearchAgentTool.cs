@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using WritingAgent.Application.WritingWorkflows.Clarification;
+using WritingAgent.Application.Agents;
 using WritingAgent.Infrastructure.Agents.Tools;
 using WritingAgent.Infrastructure.Configuration;
 

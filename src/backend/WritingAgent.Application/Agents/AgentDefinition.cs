@@ -1,4 +1,4 @@
-namespace WritingAgent.Application.WritingWorkflows.Clarification;
+namespace WritingAgent.Application.Agents;
 
 public class AgentDefinition
 {

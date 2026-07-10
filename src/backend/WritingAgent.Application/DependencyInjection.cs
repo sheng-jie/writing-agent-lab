@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using WritingAgent.Application.Agents;
+using WritingAgent.Application.Agents.Clarification;
 using WritingAgent.Application.Articles;
-using WritingAgent.Application.WritingWorkflows.Clarification;
 
 namespace WritingAgent.Application;
 
