@@ -1,15 +1,16 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WritingAgent.Application.WritingWorkflows.Clarification;
 using WritingAgent.Infrastructure.Agents.Tools;
+using WritingAgent.Infrastructure.Configuration;
 
 namespace WritingAgent.Infrastructure.Search;
 
 public sealed class TavilySearchAgentTool(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration) : AgentToolBase
+    IOptions<AIOptions> options) : AgentToolBase
 {
     private const string DescriptionText = "快速搜索写作请求中的陌生概念、产品名、缩写或近期背景。";
 
@@ -25,12 +26,11 @@ public sealed class TavilySearchAgentTool(
         string query,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = configuration["TAVILY_API_KEY"]
-            ?? Environment.GetEnvironmentVariable("TAVILY_API_KEY");
+        var apiKey = options.Value.Tavily.ApiKey;
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            return "未配置 TAVILY_API_KEY，无法执行真实搜索。";
+            return "未配置 AI:Tavily:ApiKey，无法执行真实搜索。";
         }
 
         var httpClient = httpClientFactory.CreateClient("tavily");

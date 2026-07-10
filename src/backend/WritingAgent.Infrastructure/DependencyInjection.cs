@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using WritingAgent.Domain.Articles;
 using WritingAgent.Infrastructure.Agents;
 using WritingAgent.Infrastructure.Agents.Tools;
+using WritingAgent.Infrastructure.Configuration;
 using WritingAgent.Infrastructure.Persistence;
 using WritingAgent.Infrastructure.Search;
 
@@ -24,37 +26,46 @@ public static class DependencyInjection
         services.AddDbContext<WritingAgentDbContext>(options =>
             options.UseSqlite(connectionString));
 
+        services
+            .AddOptions<AIOptions>()
+            .Bind(configuration.GetSection(AIOptions.SectionName))
+            .PostConfigure(options =>
+            {
+                options.Tavily.BaseUrl = string.IsNullOrWhiteSpace(options.Tavily.BaseUrl)
+                    ? "https://api.tavily.com/"
+                    : options.Tavily.BaseUrl;
+            })
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Chat.ApiKey), "请设置 AI:Chat:ApiKey。")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Chat.BaseUrl), "请设置 AI:Chat:BaseUrl。")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Chat.Model), "请设置 AI:Chat:Model。")
+            .ValidateOnStart();
+
         services.AddScoped<IArticleRepository, EfArticleRepository>();
 
-        services.AddHttpClient("tavily", client =>
-        {
-            client.BaseAddress = new Uri("https://api.tavily.com/");
-        });
+        services.AddHttpClient("tavily")
+            .ConfigureHttpClient((sp, client) =>
+            {
+                var aiOptions = sp.GetRequiredService<IOptions<AIOptions>>().Value;
+                client.BaseAddress = new Uri(aiOptions.Tavily.BaseUrl);
+            });
 
         services.AddSingleton<IAgentTool, TavilySearchAgentTool>();
         services.AddSingleton<AgentToolCatalog>();
         services.AddSingleton<AgentAssembler>();
 
-        services.AddChatClient(_ =>
+        services.AddChatClient(sp =>
         {
-            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-                ?? throw new InvalidOperationException("请先设置 OPENAI_API_KEY 环境变量。");
-
-            var openAIBaseUrl = Environment.GetEnvironmentVariable("OPENAI_BASE_URL")
-                ?? throw new InvalidOperationException("请先设置 OPENAI_BASE_URL 环境变量。");
-
-            var model = Environment.GetEnvironmentVariable("OPENAI_MODEL")
-                ?? throw new InvalidOperationException("请先设置 OPENAI_MODEL 环境变量。");
+            var options = sp.GetRequiredService<IOptions<AIOptions>>().Value;
 
             var openAIClient = new OpenAIClient(
-                new ApiKeyCredential(apiKey),
+                new ApiKeyCredential(options.Chat.ApiKey),
                 new OpenAIClientOptions
                 {
-                    Endpoint = new Uri(openAIBaseUrl)
+                    Endpoint = new Uri(options.Chat.BaseUrl)
                 });
 
             return openAIClient
-                .GetChatClient(model)
+                .GetChatClient(options.Chat.Model)
                 .AsIChatClient();
         });
 
