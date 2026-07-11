@@ -68,11 +68,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues for `sheng-jie/writing-agent-lab`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked as local Markdown files under `.scratch/`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The triage label vocabulary uses the five canonical defaults. See `docs/agents/triage-labels.md`.
+The local tracker uses the five canonical triage status names. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

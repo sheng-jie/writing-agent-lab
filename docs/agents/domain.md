@@ -2,8 +2,6 @@
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
-Layout: **single-context**.
-
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root, or
