@@ -1,29 +1,13 @@
-export const studioStepIds = [
-  "idea-capture",
-  "topic-generation",
-  "outline-planning",
-  "drafting",
-  "polishing",
-  "humanizing",
-  "image-planning",
-  "publishing",
-] as const;
-
-export type StudioStepId = (typeof studioStepIds)[number];
+import type { StageAction, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
 
 export type StudioStep = {
-  id: StudioStepId;
+  id: StudioStageId;
   title: string;
   icon: string;
   description: string;
-  outcome: string;
   hint: string;
   missing: string;
-  primaryAction: string;
   wordTarget: string;
-  structure: string;
-  natural: string;
-  publish: string;
 };
 
 export type StudioProject = {
@@ -35,23 +19,31 @@ export type StudioProject = {
   draft: string;
   polishedDraft: string;
   imageBrief: string;
-  artifacts: Partial<Record<StudioStepId, Record<string, string>>>;
+  artifacts: Partial<Record<StudioStageId, Record<string, string>>>;
+};
+
+export type StudioUiState = {
+  activeWorkspaceId: StudioStageId;
+  collapsed: boolean;
+  toast: { text: string; visible: boolean };
 };
 
 export type StudioController = {
-  activeStepId: StudioStepId;
+  activeWorkspaceId: StudioStageId;
   activeStep: StudioStep;
-  collapsed: boolean;
+  workflow: WritingWorkflowSnapshot;
+  stageAction: StageAction;
+  ui: StudioUiState;
   project: StudioProject;
-  isAdvancing: boolean;
+  collapsed: boolean;
   toast: { text: string; visible: boolean };
-  selectStep: (stepId: StudioStepId) => void;
+  selectWorkspace: (stageId: StudioStageId) => void;
   toggleRail: () => void;
   updateProject: (patch: Partial<StudioProject>) => void;
-  updateArtifact: (stepId: StudioStepId, patch: Record<string, string>) => void;
+  updateArtifact: (stageId: StudioStageId, patch: Record<string, string>) => void;
   addIdea: () => void;
   goBack: () => void;
-  advance: () => void;
+  runStageAction: () => void;
   save: () => void;
   copyStage: () => Promise<void>;
   notify: (message: string) => void;

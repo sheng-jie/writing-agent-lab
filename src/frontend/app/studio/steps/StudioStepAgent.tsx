@@ -1,12 +1,18 @@
 "use client";
 
 import { useFrontendTool } from "@copilotkit/react-core/v2";
+import { useEffect, useRef } from "react";
 import { z } from "zod";
 
 import type { StudioController } from "../studio.types";
 
 export function StudioStepCopilotTools({ controller, toolName }: { controller: StudioController; toolName: string }) {
-  const stepId = controller.activeStepId;
+  const stageId = controller.activeWorkspaceId;
+  const controllerRef = useRef(controller);
+
+  useEffect(() => {
+    controllerRef.current = controller;
+  }, [controller]);
 
   useFrontendTool(
     {
@@ -17,17 +23,17 @@ export function StudioStepCopilotTools({ controller, toolName }: { controller: S
         value: z.string().min(1),
       }),
       handler: async ({ field, value }) => {
-        controller.updateArtifact(stepId, { [field]: value });
-        controller.notify("已更新当前阶段产物");
+        controllerRef.current.updateArtifact(stageId, { [field]: value });
+        controllerRef.current.notify("已更新当前阶段产物");
 
         return {
           ok: true,
-          stage: controller.activeStep.title,
+          stage: controllerRef.current.activeStep.title,
           field,
         };
       },
     },
-    [controller, stepId, toolName],
+    [stageId, toolName],
   );
 
   return null;

@@ -5,11 +5,11 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { studioSteps } from "../studio.config";
+import { getStageStateLabel, getWorkflowProgress } from "../studio.workflow";
 import type { StudioController } from "../studio.types";
 
 export function StudioFlowRail({ controller }: { controller: StudioController }) {
-  const activeStepIndex = studioSteps.findIndex((step) => step.id === controller.activeStepId);
-  const progress = Math.round(((activeStepIndex + 1) / studioSteps.length) * 100);
+  const progress = getWorkflowProgress(controller.workflow);
 
   return (
     <aside className="studio-rail" aria-label="创作流程">
@@ -35,28 +35,28 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
       <section className="studio-progress" aria-label="文章进度">
         <small>当前文章进度</small>
         <div className="studio-meter">
-          <span style={{ transform: `scaleX(${progress / 100})` }} />
+          <span style={{ transform: `scaleX(${progress.percentage / 100})` }} />
         </div>
         <p>
           <span>
-            {activeStepIndex + 1} / {studioSteps.length} 步
+            {progress.acceptedCount} / {studioSteps.length} 已确认
           </span>
-          <span>{progress}%</span>
+          <span>{progress.percentage}%</span>
         </p>
       </section>
 
       <nav className="studio-steps" aria-label="步骤流">
         {studioSteps.map((step, stepIndex) => {
-          const isActive = step.id === controller.activeStepId;
-          const isDone = stepIndex < activeStepIndex;
+          const stage = controller.workflow.stages[step.id];
+          const isActive = step.id === controller.activeWorkspaceId;
+          const isDone = stage.status === "accepted";
 
           return (
             <button
               key={step.id}
               type="button"
-              disabled={controller.isAdvancing}
               className={cn("studio-step", isActive && "active", isDone && "done")}
-              onClick={() => controller.selectStep(step.id)}
+              onClick={() => controller.selectWorkspace(step.id)}
               aria-current={isActive ? "step" : undefined}
               data-title={step.title}
             >
@@ -67,10 +67,10 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
               <span className="studio-step-copy">
                 <strong>{step.title}</strong>
                 <small>{step.description}</small>
-                <em>{step.outcome}</em>
+                <em>{stage.status === "stale" ? "上游内容已变化，需要检查" : step.hint}</em>
               </span>
               <span className="studio-step-state">
-                {isDone ? "已完成" : isActive ? "进行中" : "待处理"}
+                {getStageStateLabel(stage.status)}
               </span>
             </button>
           );
@@ -79,16 +79,16 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
 
       <footer className="studio-health">
         <p>
-          <span>结构完整度</span>
-          <b>{controller.activeStep.structure}</b>
+          <span>真实当前阶段</span>
+          <b>{studioSteps.find((step) => step.id === controller.workflow.currentStageId)?.title}</b>
         </p>
         <p>
-          <span>表达自然度</span>
-          <b>{controller.activeStep.natural}</b>
+          <span>当前浏览</span>
+          <b>{controller.activeStep.title}</b>
         </p>
         <p>
-          <span>发布准备</span>
-          <b>{controller.activeStep.publish}</b>
+          <span>待处理</span>
+          <b>{studioSteps.filter((step) => controller.workflow.stages[step.id].status !== "accepted").length} 阶段</b>
         </p>
       </footer>
     </aside>

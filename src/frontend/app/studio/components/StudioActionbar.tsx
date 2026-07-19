@@ -3,17 +3,19 @@
 import { Clipboard, Save } from "lucide-react";
 
 import { studioSteps } from "../studio.config";
+import { getStageStateLabel } from "../studio.workflow";
 import type { StudioController } from "../studio.types";
 
 export function StudioActionbar({ controller }: { controller: StudioController }) {
   const { activeStep } = controller;
-  const isFirstStep = controller.activeStepId === studioSteps[0].id;
+  const isFirstStep = controller.activeWorkspaceId === studioSteps[0].id;
+  const stage = controller.workflow.stages[controller.activeWorkspaceId];
 
   return (
     <footer className="studio-actionbar">
       <div>
         <b>{activeStep.title}</b>
-        <span>{activeStep.hint}</span>
+        <span>{getStageStateLabel(stage.status)} · {controller.stageAction.hint}</span>
       </div>
 
       <div className="studio-actions">
@@ -31,10 +33,9 @@ export function StudioActionbar({ controller }: { controller: StudioController }
         <button
           className="studio-primary"
           type="button"
-          disabled={controller.isAdvancing}
-          onClick={controller.advance}
+          onClick={controller.runStageAction}
         >
-          {controller.isAdvancing ? "正在保存…" : activeStep.primaryAction}
+          {controller.stageAction.label}
         </button>
       </div>
     </footer>

@@ -33,6 +33,11 @@ export function PolishingWorkspace({ controller }: { controller: StudioControlle
               <button type="button">更克制</button>
               <button type="button">更犀利</button>
             </div>
+
+            <div className="studio-inline-note">
+              <b>去 AI 味检查</b>
+              <p>在润色改写中处理空泛表达、模板化句式与缺少个人判断的问题。</p>
+            </div>
           </StudioPanel>
 
           <StudioChecklist />
