@@ -1,52 +1,22 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { AgentPanel } from "@/components/agent/AgentPanel";
+import { StepWorkspacePlaceholder } from "@/app/studio/steps/StepWorkspacePlaceholder";
 
-import { StudioChecklist } from "../components/StudioChecklist";
-import { StudioPanel } from "../components/StudioPanel";
+import { studioAgentByStage } from "../studio.config";
 import type { StudioController } from "../studio.types";
 import { StudioStepCopilotTools } from "./StudioStepAgent";
 
 export function OutlinePlanningWorkspace({ controller }: { controller: StudioController }) {
+  const agentId = studioAgentByStage["outline-planning"];
+
   return (
     <>
-      <article className="studio-stage" aria-live="polite">
-        <div className="studio-grid">
-          <StudioPanel
-            title="写作大纲"
-            caption="每个章节都对应一个写作任务。"
-            action={
-              <button type="button" onClick={() => controller.notify("已基于当前选题刷新大纲建议")}>
-                <Sparkles />
-                重新生成
-              </button>
-            }
-          >
-            <ol className="studio-outline">
-              {controller.project.outline.map((item, index) => (
-                <li key={item}>
-                  <b>{String(index + 1).padStart(2, "0")}</b>
-                  <div>
-                    <strong>{item}</strong>
-                    <span>
-                      {index === 0
-                        ? "用一个具体场景切入：灵感很多，但打开文档后无从下手。"
-                        : "让这一段承担清晰任务，而不只是罗列工具功能。"}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </StudioPanel>
-
-          <StudioChecklist />
-        </div>
-      </article>
+      <StepWorkspacePlaceholder />
 
       <AgentPanel
-        key="outline-planning"
-        agentId="clarificationAgent"
+        key={agentId}
+        agentId={agentId}
         className="studio-agent-panel"
         title="大纲编辑搭档"
         description="规划文章主线、章节任务和素材缺口。"
@@ -66,7 +36,7 @@ export function OutlinePlanningWorkspace({ controller }: { controller: StudioCon
           ],
         }}
       >
-        <StudioStepCopilotTools controller={controller} toolName="updateWritingOutline" />
+        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateWritingOutline" />
       </AgentPanel>
     </>
   );

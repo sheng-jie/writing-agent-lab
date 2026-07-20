@@ -1,31 +1,21 @@
 "use client";
 
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { StudioPanel } from "../components/StudioPanel";
+import { StepWorkspacePlaceholder } from "@/app/studio/steps/StepWorkspacePlaceholder";
+import { studioAgentByStage } from "../studio.config";
 import type { StudioController } from "../studio.types";
 import { StudioStepCopilotTools } from "./StudioStepAgent";
 
 export function DraftingWorkspace({ controller }: { controller: StudioController }) {
+  const agentId = studioAgentByStage.drafting;
+
   return (
     <>
-      <article className="studio-stage" aria-live="polite">
-        <StudioPanel
-          title="正文初稿编辑器"
-          caption="先完成可编辑版本；AI 会在右侧提示薄弱段落。"
-          action={<span className="studio-count">约 1260 字</span>}
-        >
-          <textarea
-            className="studio-editor"
-            value={controller.project.draft}
-            onChange={(event) => controller.updateProject({ draft: event.target.value })}
-            aria-label="初稿编辑器"
-          />
-        </StudioPanel>
-      </article>
+      <StepWorkspacePlaceholder />
 
       <AgentPanel
-        key="drafting"
-        agentId="clarificationAgent"
+        key={agentId}
+        agentId={agentId}
         className="studio-agent-panel"
         title="初稿编辑搭档"
         description="补齐段落、延展案例，并标记薄弱的位置。"
@@ -45,7 +35,7 @@ export function DraftingWorkspace({ controller }: { controller: StudioController
           ],
         }}
       >
-        <StudioStepCopilotTools controller={controller} toolName="updateArticleDraft" />
+        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateArticleDraft" />
       </AgentPanel>
     </>
   );

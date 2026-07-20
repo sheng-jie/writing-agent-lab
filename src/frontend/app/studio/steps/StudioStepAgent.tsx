@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { StudioController } from "../studio.types";
 
-export function StudioStepCopilotTools({ controller, toolName }: { controller: StudioController; toolName: string }) {
+export function StudioStepCopilotTools({ agentId, controller, toolName }: { agentId: string; controller: StudioController; toolName: string }) {
   const stageId = controller.activeWorkspaceId;
   const controllerRef = useRef(controller);
 
@@ -17,6 +17,7 @@ export function StudioStepCopilotTools({ controller, toolName }: { controller: S
   useFrontendTool(
     {
       name: toolName,
+      agentId,
       description: `Apply a focused update for the current FlowDraft writing workflow stage: ${controller.activeStep.title}.`,
       parameters: z.object({
         field: z.string().min(1),
@@ -33,7 +34,7 @@ export function StudioStepCopilotTools({ controller, toolName }: { controller: S
         };
       },
     },
-    [stageId, toolName],
+    [agentId, stageId, toolName],
   );
 
   return null;

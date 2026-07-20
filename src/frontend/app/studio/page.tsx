@@ -9,7 +9,6 @@ export default function StudioPage() {
   return (
     <CopilotKit
       runtimeUrl="/api/copilotkit"
-      agent="clarificationAgent"
       useSingleEndpoint
       showDevConsole={process.env.NODE_ENV !== "production"}
     >

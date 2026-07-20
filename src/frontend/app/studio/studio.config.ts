@@ -1,4 +1,14 @@
 import type { StudioProject, StudioStep } from "./studio.types";
+import type { StudioStageId } from "./studio.workflow";
+
+export const studioAgentByStage: Record<StudioStageId, string> = {
+  "idea-capture": "studioIdeaCaptureAgent",
+  "topic-generation": "studioTopicAgent",
+  "outline-planning": "studioOutlineAgent",
+  drafting: "studioDraftingAgent",
+  polishing: "studioPolishingAgent",
+  "image-planning": "studioImageAgent",
+};
 
 export const studioSteps: StudioStep[] = [
   {

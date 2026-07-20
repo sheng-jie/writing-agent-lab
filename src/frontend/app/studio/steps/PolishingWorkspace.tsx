@@ -1,52 +1,21 @@
 "use client";
 
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { StudioChecklist } from "../components/StudioChecklist";
-import { StudioPanel } from "../components/StudioPanel";
+import { StepWorkspacePlaceholder } from "@/app/studio/steps/StepWorkspacePlaceholder";
+import { studioAgentByStage } from "../studio.config";
 import type { StudioController } from "../studio.types";
 import { StudioStepCopilotTools } from "./StudioStepAgent";
 
 export function PolishingWorkspace({ controller }: { controller: StudioController }) {
+  const agentId = studioAgentByStage.polishing;
+
   return (
     <>
-      <article className="studio-stage" aria-live="polite">
-        <div className="studio-grid">
-          <StudioPanel title="润色改写区" caption="对开头、标题、转场和句长做集中优化。">
-            <label className="studio-field">
-              <span>原句</span>
-              <textarea
-                value={controller.project.draft}
-                onChange={(event) => controller.updateProject({ draft: event.target.value })}
-              />
-            </label>
-
-            <label className="studio-field">
-              <span>改写后</span>
-              <textarea
-                value={controller.project.polishedDraft}
-                onChange={(event) => controller.updateProject({ polishedDraft: event.target.value })}
-              />
-            </label>
-
-            <div className="studio-chips">
-              <button className="selected" type="button">更口语</button>
-              <button type="button">更克制</button>
-              <button type="button">更犀利</button>
-            </div>
-
-            <div className="studio-inline-note">
-              <b>去 AI 味检查</b>
-              <p>在润色改写中处理空泛表达、模板化句式与缺少个人判断的问题。</p>
-            </div>
-          </StudioPanel>
-
-          <StudioChecklist />
-        </div>
-      </article>
+      <StepWorkspacePlaceholder />
 
       <AgentPanel
-        key="polishing"
-        agentId="clarificationAgent"
+        key={agentId}
+        agentId={agentId}
         className="studio-agent-panel"
         title="润色编辑搭档"
         description="从标题、开头、转场和句长四个方向优化表达。"
@@ -66,7 +35,7 @@ export function PolishingWorkspace({ controller }: { controller: StudioControlle
           ],
         }}
       >
-        <StudioStepCopilotTools controller={controller} toolName="polishDraft" />
+        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="polishDraft" />
       </AgentPanel>
     </>
   );
