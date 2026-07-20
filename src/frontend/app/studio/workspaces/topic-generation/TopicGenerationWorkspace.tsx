@@ -1,10 +1,10 @@
 "use client";
 
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { StepWorkspacePlaceholder } from "@/app/studio/steps/StepWorkspacePlaceholder";
-import { studioAgentByStage } from "../studio.config";
-import type { StudioController } from "../studio.types";
-import { StudioStepCopilotTools } from "./StudioStepAgent";
+import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
+import { studioAgentByStage } from "../../studio.config";
+import type { StudioController } from "../../studio.types";
+import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function TopicGenerationWorkspace({ controller }: { controller: StudioController }) {
   const agentId = studioAgentByStage["topic-generation"];

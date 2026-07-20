@@ -1,9 +1,9 @@
-import { DraftingWorkspace } from "./DraftingWorkspace";
-import { IdeaCaptureWorkspace } from "./IdeaCaptureWorkspace";
-import { ImagePlanningWorkspace } from "./ImagePlanningWorkspace";
-import { OutlinePlanningWorkspace } from "./OutlinePlanningWorkspace";
-import { PolishingWorkspace } from "./PolishingWorkspace";
-import { TopicGenerationWorkspace } from "./TopicGenerationWorkspace";
+import { DraftingWorkspace } from "./drafting";
+import { IdeaCaptureWorkspace } from "./idea-capture";
+import { ImagePlanningWorkspace } from "./image-planning";
+import { OutlinePlanningWorkspace } from "./outline-planning";
+import { PolishingWorkspace } from "./polishing";
+import { TopicGenerationWorkspace } from "./topic-generation";
 import type { StudioController } from "../studio.types";
 import type { StudioStageId } from "../studio.workflow";
 

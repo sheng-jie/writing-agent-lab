@@ -6,7 +6,7 @@ import { StudioActionbar } from "./components/StudioActionbar";
 import { StudioFlowRail } from "./components/StudioFlowRail";
 import { StudioToast } from "./components/StudioToast";
 import { StudioTopbar } from "./components/StudioTopbar";
-import { StepWorkspace } from "./steps/StepWorkspace";
+import { StepWorkspace } from "./workspaces/StepWorkspace";
 import { useStudioState } from "./useStudioState";
 
 export function StudioWorkspace() {
