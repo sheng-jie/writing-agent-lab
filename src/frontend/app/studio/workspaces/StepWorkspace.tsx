@@ -20,6 +20,11 @@ const workspaces: Record<StudioStageId, Workspace> = {
 };
 
 export function StepWorkspace({ controller }: WorkspaceProps) {
-  const Workspace = workspaces[controller.activeWorkspaceId];
-  return <Workspace controller={controller} />;
+  const stageId = controller.activeWorkspaceId;
+  const stage = controller.workflow.stages[stageId];
+  const Workspace = workspaces[stageId];
+  const workspaceResetKey = `${stageId}:${stage.status}:${stage.revision}`;
+
+  // 强制在阶段重置后重挂载当前工作区，确保 AgentPanel 会话历史与本地状态同步清空。
+  return <Workspace key={workspaceResetKey} controller={controller} />;
 }

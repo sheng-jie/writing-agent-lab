@@ -1,18 +1,13 @@
 import type { StageAction, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
 
-export type IdeaMaterial = {
-  title: string;
-  url: string;
-  type: "对话素材" | "联网资料" | "用户链接";
-};
-
 export type WritingIntent = {
-  rawNeed: string;
+  rawIdea: string;
   topic: string;
   audience: string;
-  thesis: string;
-  materials: IdeaMaterial[];
-  selectedDirection: "method" | "product" | "opinion" | "";
+  purpose: string;
+  platform: string;
+  coreViewpoint: string;
+  contentBoundary: string;
 };
 
 export type StudioStep = {

@@ -1,13 +1,13 @@
 "use client";
 
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./idea-capture.css";
 
-import { IdeaCaptureBriefPanel } from "./IdeaCaptureBriefPanel";
+import { IdeaCaptureIntentPanel } from "./IdeaCaptureIntentPanel";
 import { IdeaCaptureCopilotTools } from "./IdeaCaptureCopilotTools";
-import type { Brief, IdeaCaptureState } from "./ideaCapture.types";
+import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
 
 import type { StudioController } from "../../studio.types";
 
@@ -17,6 +17,15 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
   const phase = controller.workflow.stages["idea-capture"].status === "accepted"
     ? "card"
     : hasWritingIntent(controller.project.writingIntent) ? "clarifying" : "initial";
+  const prevPhaseRef = useRef(phase);
+
+  useEffect(() => {
+    if (prevPhaseRef.current === "card" && phase !== "card") {
+      setUpdatedCards(new Set());
+      setResetKey((key) => key + 1);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
 
   function flashCard(name: string) {
     setUpdatedCards((current) => new Set(current).add(name));
@@ -31,8 +40,8 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
   const ideaCaptureController: IdeaCaptureState = {
     phase,
-    brief: controller.project.writingIntent,
-    setBrief: (updater) => {
+    writingIntent: controller.project.writingIntent,
+    setWritingIntent: (updater) => {
       const next = typeof updater === "function" ? updater(controller.project.writingIntent) : updater;
       controller.updateWritingIntent(next);
     },
@@ -42,23 +51,25 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
     notify: controller.notify,
     flashCard,
     flashCards: (names) => names.forEach(flashCard),
-    updateBrief: (patch) => {
+    updateWritingIntent: (patch) => {
       if (!controller.updateWritingIntent(patch)) return [];
       const changedCards = Object.keys(patch).flatMap((key) => {
-        const cardByField: Record<string, string> = { rawNeed: "raw", topic: "topic", audience: "audience", thesis: "thesis", materials: "materials" };
+        const cardByField: Record<string, string> = {
+          rawIdea: "raw",
+          topic: "topic",
+          audience: "audience",
+          purpose: "purpose",
+          platform: "platform",
+          coreViewpoint: "coreViewpoint",
+          contentBoundary: "contentBoundary",
+        };
         return cardByField[key] ? [cardByField[key]] : [];
       });
       changedCards.forEach(flashCard);
       controller.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
       return changedCards;
     },
-    addMaterials: (materials) => {
-      if (controller.updateWritingIntent({ materials })) {
-        flashCard("materials");
-        controller.notify("已补充素材清单");
-      }
-    },
-    confirmBrief: (brief) => controller.confirmWritingIntent(brief),
+    confirmWritingIntent: (writingIntent) => controller.confirmWritingIntent(writingIntent),
     restart: () => {
       if (controller.restartIdeaCapture()) {
         setUpdatedCards(new Set());
@@ -71,13 +82,8 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
     <>
       <section className="studio-stage studio-idea-stage">
         <div className="studio-idea-heading">
-          <div>
-            <h2>写作意图识别</h2>
-            <p>从一个粗糙想法开始，经由追问沉淀为下一阶段可用的结构化写作意图。</p>
-          </div>
-          {phase === "card" ? <button type="button" onClick={ideaCaptureController.restart}>重新开始</button> : null}
         </div>
-        <IdeaCaptureBriefPanel controller={ideaCaptureController} />
+        <IdeaCaptureIntentPanel controller={ideaCaptureController} />
       </section>
 
       <AgentPanel
@@ -85,7 +91,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
         agentId="clarificationAgent"
         className="studio-agent-panel"
         title="写作意图编辑"
-        description="通过关键追问澄清主题、读者和核心判断。"
+        description="通过关键追问补齐结构化写作意图的 7 个字段。"
         idleBadge={phase === "card" ? "已确认" : "识别中"}
         runningBadge="处理中"
         placeholder="输入一个模糊想法，例如：我想写一篇关于 AI Agent 如何帮助创作者理清想法的文章…"
@@ -109,6 +115,14 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
   );
 }
 
-function hasWritingIntent(intent: Brief) {
-  return Boolean(intent.rawNeed || intent.topic || intent.audience || intent.thesis || intent.materials.length);
+function hasWritingIntent(intent: WritingIntentDraft) {
+  return Boolean(
+    intent.rawIdea
+      || intent.topic
+      || intent.audience
+      || intent.purpose
+      || intent.platform
+      || intent.coreViewpoint
+      || intent.contentBoundary,
+  );
 }

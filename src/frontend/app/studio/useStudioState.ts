@@ -15,7 +15,7 @@ import {
   type StageArtifact,
   type StudioStageId,
 } from "./studio.workflow";
-import type { IdeaMaterial, StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
+import type { StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
 
 const railStorageKey = "flowdraft-studio-rail";
 const initialUiState: StudioUiState = {
@@ -61,7 +61,7 @@ export function useStudioState(): StudioController {
       writingIntent: project.writingIntent,
       constraints: {
         toolPolicy: activeStep.id === "idea-capture"
-          ? "Use updateWritingBrief and addMaterials while identifying the writing intent. Ask clarification questions when needed. Once the intent is complete, call confirmWritingIntent and wait for the user to confirm."
+          ? "Use updateWritingIntent to maintain exactly these writing intent fields: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary. Ask clarification questions when needed. Once all required fields are clear, call confirmWritingIntent and wait for the user to confirm."
           : "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
       },
     }),
@@ -130,15 +130,6 @@ export function useStudioState(): StudioController {
     }));
   }
 
-  function mergeMaterials(primary: IdeaMaterial[], secondary: IdeaMaterial[]) {
-    const seen = new Set<string>();
-    return primary.concat(secondary).filter((material) => {
-      if (seen.has(material.url)) return false;
-      seen.add(material.url);
-      return true;
-    });
-  }
-
   function updateWritingIntent(patch: Partial<WritingIntent>) {
     const currentStage = workflow.stages["idea-capture"];
     if (currentStage.status === "accepted" && !window.confirm("修改写作意图会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？")) {
@@ -148,7 +139,6 @@ export function useStudioState(): StudioController {
     const nextIntent = {
       ...project.writingIntent,
       ...patch,
-      materials: patch.materials ? mergeMaterials(patch.materials, project.writingIntent.materials) : project.writingIntent.materials,
     };
     setProject((current) => ({ ...current, writingIntent: nextIntent }));
     if (currentStage.status === "accepted") {
@@ -170,7 +160,6 @@ export function useStudioState(): StudioController {
     const nextIntent = {
       ...project.writingIntent,
       ...patch,
-      materials: patch.materials ? mergeMaterials(patch.materials, project.writingIntent.materials) : project.writingIntent.materials,
     };
     setProject((current) => ({ ...current, writingIntent: nextIntent }));
     setWorkflow((current) => ({
@@ -218,8 +207,14 @@ export function useStudioState(): StudioController {
     const stageId = ui.activeWorkspaceId;
     const action = getStageAction(workflow.stages[stageId]);
 
+    if (action.kind === "completed") {
+      const nextStageId = getNextStageId(stageId);
+      if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
+      return;
+    }
+
     if (action.kind !== "advance") {
-      notify(action.kind === "completed" ? "当前阶段已确认，如需修改请先重置" : "请先补齐当前阶段内容");
+      notify("请先补齐当前阶段内容");
       return;
     }
 

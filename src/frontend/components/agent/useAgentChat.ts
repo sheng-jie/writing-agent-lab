@@ -56,6 +56,12 @@ export function useAgentChat({ agentId, onError }: AgentChatOptions) {
     send,
     sendCurrentInput,
     abort: () => agent.abortRun(),
+    clearMessages: () => {
+      if (agent.isRunning) {
+        agent.abortRun();
+      }
+      agent.setMessages([]);
+    },
   };
 }
 

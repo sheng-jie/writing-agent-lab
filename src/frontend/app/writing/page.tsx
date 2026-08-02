@@ -15,7 +15,7 @@ export default function WritingPage() {
         <CopilotChat
           labels={{
             title: "WritingFlow AI",
-            initial: "告诉我你想写什么，我会先帮你澄清成 Writing Brief。",
+            initial: "告诉我你想写什么，我会先帮你澄清成写作意图。",
           }}
         />
       </main>

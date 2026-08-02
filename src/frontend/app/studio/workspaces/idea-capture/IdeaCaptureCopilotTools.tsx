@@ -9,22 +9,17 @@ import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificat
 import { WritingIntentConfirmCard, WritingIntentConfirmPendingCard, writingIntentConfirmationArgsSchema, type WritingIntentConfirmationArgs } from "./WritingIntentConfirmCard";
 import type { IdeaCaptureState } from "./ideaCapture.types";
 
-const materialSchema = z.object({
-  title: z.string().min(1),
-  url: z.string().min(1),
-  type: z.enum(["对话素材", "联网资料", "用户链接"]),
-});
-
-const briefPatchSchema = z.object({
-  rawNeed: z.string().optional(),
+const writingIntentPatchSchema = z.object({
+  rawIdea: z.string().optional(),
   topic: z.string().optional(),
   audience: z.string().optional(),
-  thesis: z.string().optional(),
-  materials: z.array(materialSchema).optional(),
-  selectedDirection: z.enum(["method", "product", "opinion"]).optional(),
+  purpose: z.string().optional(),
+  platform: z.string().optional(),
+  coreViewpoint: z.string().optional(),
+  contentBoundary: z.string().optional(),
 });
 
-const intentCardNameSchema = z.enum(["raw", "topic", "audience", "thesis", "materials"]);
+const intentCardNameSchema = z.enum(["raw", "topic", "audience", "purpose", "platform", "coreViewpoint", "contentBoundary"]);
 
 /**
  * 捕捉想法工作区的 ToolHost：只负责工具注册（useFrontendTool / useHumanInTheLoop）。
@@ -35,27 +30,13 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
 
   useFrontendTool(
     {
-      name: "updateWritingBrief",
-      description: "Patch one or more fields of the left-side writing intent brief. Use this when the conversation identifies raw need, topic, audience, thesis, selected direction, or materials.",
+      name: "updateWritingIntent",
+      description: "Patch one or more fields of the left-side writing intent. The patch keys must be from: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary.",
       available: true,
-      parameters: briefPatchSchema,
+      parameters: writingIntentPatchSchema,
       handler: async (patch) => {
-        const changedCards = controller.updateBrief(patch);
+        const changedCards = controller.updateWritingIntent(patch);
         return { ok: true, changedCards };
-      },
-    },
-    [],
-  );
-
-  useFrontendTool(
-    {
-      name: "addMaterials",
-      description: "Add material links or conversation references to the left-side material list without replacing existing materials.",
-      available: true,
-      parameters: z.object({ materials: z.array(materialSchema).min(1) }),
-      handler: async ({ materials }) => {
-        controller.addMaterials(materials);
-        return { ok: true, added: materials.length };
       },
     },
     [],
@@ -77,7 +58,7 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
   useHumanInTheLoop<ClarificationArgs>(
     {
       name: "clarification",
-      description: "Render structured clarification questions and wait for the user's answers before continuing the writing brief flow.",
+      description: "Render structured clarification questions and wait for the user's answers before continuing the writing intent flow.",
       available: phase !== "card",
       parameters: clarificationArgsSchema,
       render: ({ args, status, respond, result }) => (
@@ -109,7 +90,7 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
             args={args as unknown as WritingIntentConfirmationArgs}
             respond={respond}
             disabled={status !== "executing"}
-            onConfirmAccepted={controller.confirmBrief}
+            onConfirmAccepted={controller.confirmWritingIntent}
             onContinueRequested={() => controller.notify("可以继续补充澄清")}
           />
         </AgentCardShell>

@@ -17,7 +17,7 @@ export const studioSteps: StudioStep[] = [
     icon: "捕",
     description: "灵感收集与素材归档",
     hint: "先把未经整理的灵感收进来，不急着判断好坏。",
-    missing: "补入读者问题和核心判断后，再提交写作意图审阅。",
+    missing: "补齐写作主题、目标读者、写作目的、发布平台、核心观点与内容边界后，再提交写作意图审阅。",
     wordTarget: "—",
   },
   {
@@ -70,12 +70,13 @@ export const studioSteps: StudioStep[] = [
 export const initialStudioProject: StudioProject = {
   title: "如何把零散灵感变成一篇能发布的深度文章",
   writingIntent: {
-    rawNeed: "",
+    rawIdea: "",
     topic: "",
     audience: "",
-    thesis: "",
-    materials: [],
-    selectedDirection: "",
+    purpose: "",
+    platform: "",
+    coreViewpoint: "",
+    contentBoundary: "",
   },
   confirmedTopic: "把零散灵感变成可发布文章：一套自媒体写作工作台",
   outline: ["开场：创作者真正卡住的不是写字", "为什么需要固定工作流", "六个阶段如何推进", "AI 应该在什么位置介入", "文章形成前的检查清单"],

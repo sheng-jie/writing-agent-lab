@@ -10,6 +10,7 @@ export function StudioActionbar({ controller }: { controller: StudioController }
   const stage = controller.workflow.stages[controller.activeWorkspaceId];
   const isFinalStage = controller.activeWorkspaceId === studioSteps.at(-1)?.id;
   const canAdvance = controller.stageAction.kind === "advance";
+  const canOpenNextStage = stage.status === "accepted" && !isFinalStage;
   const canSaveArticle = isFinalStage && stage.status === "accepted";
 
   return (
@@ -29,7 +30,7 @@ export function StudioActionbar({ controller }: { controller: StudioController }
         <button
           className="studio-primary"
           type="button"
-          disabled={canSaveArticle ? false : !canAdvance}
+          disabled={canSaveArticle ? false : !(canAdvance || canOpenNextStage)}
           onClick={canSaveArticle ? controller.saveArticle : controller.runStageAction}
         >
           {canSaveArticle ? (controller.articleSaved ? "文章已保存" : "保存文章") : "下一步"}

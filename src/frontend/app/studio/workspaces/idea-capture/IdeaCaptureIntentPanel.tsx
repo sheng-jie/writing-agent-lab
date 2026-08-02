@@ -11,7 +11,7 @@ const intentCardConfigs = [
     index: "01",
     label: "原始想法",
     state: "已确认",
-    briefKey: "rawIdea",
+    fieldKey: "rawIdea",
     chips: ["来自首轮输入", "可编辑"],
     accentChip: true,
   },
@@ -20,7 +20,7 @@ const intentCardConfigs = [
     index: "02",
     label: "写作主题",
     state: "已识别",
-    briefKey: "topic",
+    fieldKey: "topic",
     chips: ["主题可继续收窄"],
     accentChip: false,
   },
@@ -29,7 +29,7 @@ const intentCardConfigs = [
     index: "03",
     label: "目标读者",
     state: "已明确",
-    briefKey: "audience",
+    fieldKey: "audience",
     chips: ["面向创作决策"],
     accentChip: false,
   },
@@ -38,7 +38,7 @@ const intentCardConfigs = [
     index: "04",
     label: "写作目的",
     state: "已提炼",
-    briefKey: "purpose",
+    fieldKey: "purpose",
     chips: ["明确读者收益"],
     accentChip: true,
   },
@@ -47,7 +47,7 @@ const intentCardConfigs = [
     index: "05",
     label: "发布平台",
     state: "已补齐",
-    briefKey: "platform",
+    fieldKey: "platform",
     chips: ["影响表达形式"],
     accentChip: false,
   },
@@ -56,7 +56,7 @@ const intentCardConfigs = [
     index: "06",
     label: "核心观点",
     state: "已提炼",
-    briefKey: "coreViewpoint",
+    fieldKey: "coreViewpoint",
     chips: ["文章主论点"],
     accentChip: true,
   },
@@ -65,7 +65,7 @@ const intentCardConfigs = [
     index: "07",
     label: "内容边界",
     state: "已约束",
-    briefKey: "contentBoundary",
+    fieldKey: "contentBoundary",
     chips: ["避免话题失焦"],
     accentChip: true,
   },
@@ -75,7 +75,7 @@ const intentCardConfigs = [
  * 左侧写作意图沉淀区：确认前展示引导说明，确认后展示结构化写作意图卡片。
  * 纯展示 + 直接编辑，不感知 Agent/CopilotKit。
  */
-export function IdeaCaptureBriefPanel({ controller }: { controller: IdeaCaptureState }) {
+export function IdeaCaptureIntentPanel({ controller }: { controller: IdeaCaptureState }) {
   const { phase, writingIntent, updatedCards, setWritingIntent } = controller;
 
   return (
@@ -145,8 +145,8 @@ function IntentCards({ writingIntent, updatedCards, setWritingIntent }: { writin
             accentChip={cardConfig.accentChip}
           >
             <EditableText
-              value={writingIntent[cardConfig.briefKey] || "—"}
-              onBlur={(value) => update(cardConfig.briefKey, value)}
+              value={writingIntent[cardConfig.fieldKey] || "—"}
+              onBlur={(value) => update(cardConfig.fieldKey, value)}
             />
           </IntentCard>
         ))}
