@@ -5,12 +5,10 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { studioSteps } from "../studio.config";
-import { getStageStateLabel, getWorkflowProgress } from "../studio.workflow";
+import { getStageStateLabel } from "../studio.workflow";
 import type { StudioController } from "../studio.types";
 
 export function StudioFlowRail({ controller }: { controller: StudioController }) {
-  const progress = getWorkflowProgress(controller.workflow);
-
   return (
     <aside className="studio-rail" aria-label="创作流程">
       <header className="studio-brand">
@@ -31,19 +29,6 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
           <ChevronLeft />
         </button>
       </header>
-
-      <section className="studio-progress" aria-label="文章进度">
-        <small>当前文章进度</small>
-        <div className="studio-meter">
-          <span style={{ transform: `scaleX(${progress.percentage / 100})` }} />
-        </div>
-        <p>
-          <span>
-            {progress.acceptedCount} / {studioSteps.length} 已确认
-          </span>
-          <span>{progress.percentage}%</span>
-        </p>
-      </section>
 
       <nav className="studio-steps" aria-label="步骤流">
         {studioSteps.map((step, stepIndex) => {
@@ -76,21 +61,6 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
           );
         })}
       </nav>
-
-      <footer className="studio-health">
-        <p>
-          <span>真实当前阶段</span>
-          <b>{studioSteps.find((step) => step.id === controller.workflow.currentStageId)?.title}</b>
-        </p>
-        <p>
-          <span>当前浏览</span>
-          <b>{controller.activeStep.title}</b>
-        </p>
-        <p>
-          <span>待处理</span>
-          <b>{studioSteps.filter((step) => controller.workflow.stages[step.id].status !== "accepted").length} 阶段</b>
-        </p>
-      </footer>
     </aside>
   );
 }
