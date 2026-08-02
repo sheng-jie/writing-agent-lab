@@ -7,7 +7,7 @@ import { AgentCardShell } from "@/components/agent/AgentCardShell";
 
 import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificationArgsSchema, type ClarificationArgs } from "./ClarificationQuestionCard";
 import { WritingIntentConfirmCard, WritingIntentConfirmPendingCard, writingIntentConfirmationArgsSchema, type WritingIntentConfirmationArgs } from "./WritingIntentConfirmCard";
-import type { ClarifyState } from "./useClarifyState";
+import type { IdeaCaptureState } from "./ideaCapture.types";
 
 const materialSchema = z.object({
   title: z.string().min(1),
@@ -27,18 +27,17 @@ const briefPatchSchema = z.object({
 const intentCardNameSchema = z.enum(["raw", "topic", "audience", "thesis", "materials"]);
 
 /**
- * `/clarify` 的业务 ToolHost：只负责工具注册（useFrontendTool / useHumanInTheLoop）。
- * 状态存储与 useAgentContext 同步已下沉到 useClarifyState。
+ * 捕捉想法工作区的 ToolHost：只负责工具注册（useFrontendTool / useHumanInTheLoop）。
  * 挂载为 <AgentPanel> 的 children。
  */
-export function ClarifyCopilotTools({ controller }: { controller: ClarifyState }) {
+export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptureState }) {
   const { phase } = controller;
 
   useFrontendTool(
     {
       name: "updateWritingBrief",
       description: "Patch one or more fields of the left-side writing intent brief. Use this when the conversation identifies raw need, topic, audience, thesis, selected direction, or materials.",
-      available: phase !== "card",
+      available: true,
       parameters: briefPatchSchema,
       handler: async (patch) => {
         const changedCards = controller.updateBrief(patch);
@@ -52,7 +51,7 @@ export function ClarifyCopilotTools({ controller }: { controller: ClarifyState }
     {
       name: "addMaterials",
       description: "Add material links or conversation references to the left-side material list without replacing existing materials.",
-      available: phase !== "card",
+      available: true,
       parameters: z.object({ materials: z.array(materialSchema).min(1) }),
       handler: async ({ materials }) => {
         controller.addMaterials(materials);

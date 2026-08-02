@@ -11,7 +11,11 @@ export type StudioStageId = (typeof studioStageIds)[number];
 
 export type StageStatus = "pending" | "in-progress" | "accepted";
 
-export type StageArtifact = Record<string, string | string[]>;
+export type StageArtifactValue = string | number | boolean | null | StageArtifact | StageArtifactValue[];
+
+export interface StageArtifact {
+  [key: string]: StageArtifactValue;
+}
 
 export type StageRecord = {
   status: StageStatus;
@@ -114,7 +118,15 @@ export function getStageAction(stage: StageRecord): StageAction {
 }
 
 function hasStageContent(stage: StageRecord) {
-  return stage.updatedAt !== null && Object.values(stage.draft ?? {}).some((value) => Array.isArray(value) ? value.length > 0 : value.trim().length > 0);
+  return stage.updatedAt !== null && Object.values(stage.draft ?? {}).some(hasArtifactContent);
+}
+
+function hasArtifactContent(value: StageArtifactValue): boolean {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number" || typeof value === "boolean") return true;
+  if (value === null) return false;
+  if (Array.isArray(value)) return value.some(hasArtifactContent);
+  return Object.values(value).some(hasArtifactContent);
 }
 
 export function getStageStateLabel(status: StageStatus) {

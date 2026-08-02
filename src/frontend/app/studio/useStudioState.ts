@@ -12,9 +12,10 @@ import {
   openWorkspace,
   resetWorkflowFromStage,
   studioStageIds,
+  type StageArtifact,
   type StudioStageId,
 } from "./studio.workflow";
-import type { StudioController, StudioProject, StudioUiState } from "./studio.types";
+import type { IdeaMaterial, StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
 
 const railStorageKey = "flowdraft-studio-rail";
 const initialUiState: StudioUiState = {
@@ -26,7 +27,6 @@ const initialUiState: StudioUiState = {
 export function useStudioState(): StudioController {
   const [workflow, setWorkflow] = useState(() =>
     createInitialWorkflow({
-      "idea-capture": { writingIntent: initialStudioProject.writingIntent },
       "topic-generation": { confirmedTopic: initialStudioProject.confirmedTopic },
       "outline-planning": { outline: initialStudioProject.outline },
       drafting: { draft: initialStudioProject.draft },
@@ -58,11 +58,14 @@ export function useStudioState(): StudioController {
       activeWorkspace: activeStep.title,
       currentStage: studioSteps.find((step) => step.id === workflow.currentStageId)?.title ?? "未开始",
       workflow,
+      writingIntent: project.writingIntent,
       constraints: {
-        toolPolicy: "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
+        toolPolicy: activeStep.id === "idea-capture"
+          ? "Use updateWritingBrief and addMaterials while identifying the writing intent. Ask clarification questions when needed. Once the intent is complete, call confirmWritingIntent and wait for the user to confirm."
+          : "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
       },
     }),
-    [activeStep.title, workflow],
+    [activeStep.id, activeStep.title, project.writingIntent, workflow],
   );
 
   useAgentContext({
@@ -113,7 +116,7 @@ export function useStudioState(): StudioController {
     updateStageDraft(stageId, patch);
   }
 
-  function updateStageDraft(stageId: StudioStageId, patch: Record<string, string | string[]>) {
+  function updateStageDraft(stageId: StudioStageId, patch: StageArtifact) {
     setWorkflow((current) => ({
       ...current,
       stages: {
@@ -127,10 +130,75 @@ export function useStudioState(): StudioController {
     }));
   }
 
-  function addIdea() {
-    setProject((current) => ({ ...current, ideas: ["新捕捉的灵感", ...current.ideas] }));
-    updateStageDraft("idea-capture", { ideas: ["新捕捉的灵感", ...project.ideas] });
-    notify("已加入素材卡片");
+  function mergeMaterials(primary: IdeaMaterial[], secondary: IdeaMaterial[]) {
+    const seen = new Set<string>();
+    return primary.concat(secondary).filter((material) => {
+      if (seen.has(material.url)) return false;
+      seen.add(material.url);
+      return true;
+    });
+  }
+
+  function updateWritingIntent(patch: Partial<WritingIntent>) {
+    const currentStage = workflow.stages["idea-capture"];
+    if (currentStage.status === "accepted" && !window.confirm("修改写作意图会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？")) {
+      return false;
+    }
+
+    const nextIntent = {
+      ...project.writingIntent,
+      ...patch,
+      materials: patch.materials ? mergeMaterials(patch.materials, project.writingIntent.materials) : project.writingIntent.materials,
+    };
+    setProject((current) => ({ ...current, writingIntent: nextIntent }));
+    if (currentStage.status === "accepted") {
+      setWorkflow((current) => ({
+        ...resetWorkflowFromStage(current, "idea-capture"),
+        stages: {
+          ...resetWorkflowFromStage(current, "idea-capture").stages,
+          "idea-capture": { ...resetWorkflowFromStage(current, "idea-capture").stages["idea-capture"], draft: nextIntent },
+        },
+      }));
+      notify("写作意图已更新，后续阶段已重置");
+    } else {
+      updateStageDraft("idea-capture", nextIntent);
+    }
+    return true;
+  }
+
+  function confirmWritingIntent(patch: Partial<WritingIntent>) {
+    const nextIntent = {
+      ...project.writingIntent,
+      ...patch,
+      materials: patch.materials ? mergeMaterials(patch.materials, project.writingIntent.materials) : project.writingIntent.materials,
+    };
+    setProject((current) => ({ ...current, writingIntent: nextIntent }));
+    setWorkflow((current) => ({
+      ...current,
+      currentStageId: "topic-generation",
+      stages: {
+        ...current.stages,
+        "idea-capture": { ...current.stages["idea-capture"], status: "accepted", draft: nextIntent, accepted: nextIntent, revision: current.stages["idea-capture"].revision + 1 },
+        "topic-generation": current.stages["topic-generation"].status === "pending"
+          ? { ...current.stages["topic-generation"], status: "in-progress" }
+          : current.stages["topic-generation"],
+      },
+    }));
+    notify("写作意图已确认，已可进入选题生成");
+  }
+
+  function restartIdeaCapture() {
+    const hasDownstreamArtifacts = Object.values(workflow.stages).some((stage, index) => index > 0 && (stage.draft || stage.accepted));
+    if (workflow.stages["idea-capture"].status === "accepted" && !window.confirm(hasDownstreamArtifacts ? "重新开始会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？" : "重新开始写作意图识别吗？")) {
+      return false;
+    }
+    setProject((current) => ({ ...current, writingIntent: initialStudioProject.writingIntent }));
+    setWorkflow((current) => ({
+      ...resetWorkflowFromStage(current, "idea-capture"),
+      stages: { ...resetWorkflowFromStage(current, "idea-capture").stages, "idea-capture": { ...resetWorkflowFromStage(current, "idea-capture").stages["idea-capture"], draft: null } },
+    }));
+    notify("已重新开始写作意图识别");
+    return true;
   }
 
   function selectWorkspace(stageId: StudioStageId) {
@@ -237,7 +305,9 @@ export function useStudioState(): StudioController {
     toggleRail,
     updateProject,
     updateArtifact,
-    addIdea,
+    updateWritingIntent,
+    confirmWritingIntent,
+    restartIdeaCapture,
     goBack,
     runStageAction,
     resetStage,
@@ -250,7 +320,7 @@ export function useStudioState(): StudioController {
 function clearProjectFromStage(project: StudioProject, stageId: StudioStageId): StudioProject {
   const resetIndex = studioStageIds.indexOf(stageId);
   const fieldsByStage: Record<StudioStageId, (keyof StudioProject)[]> = {
-    "idea-capture": ["ideas", "writingIntent"],
+    "idea-capture": ["writingIntent"],
     "topic-generation": ["confirmedTopic"],
     "outline-planning": ["outline"],
     drafting: ["draft"],
@@ -264,6 +334,7 @@ function clearProjectFromStage(project: StudioProject, stageId: StudioStageId): 
       const value = project[field];
       if (typeof value === "string") nextProject[field] = "" as never;
       if (Array.isArray(value)) nextProject[field] = [] as never;
+      if (field === "writingIntent") nextProject.writingIntent = initialStudioProject.writingIntent;
     });
     delete nextProject.artifacts[id];
   });
@@ -271,10 +342,10 @@ function clearProjectFromStage(project: StudioProject, stageId: StudioStageId): 
   return nextProject;
 }
 
-function getActiveStageDraftPatch(stageId: StudioStageId, patch: Partial<StudioProject>): Record<string, string | string[]> | null {
+function getActiveStageDraftPatch(stageId: StudioStageId, patch: Partial<StudioProject>): StageArtifact | null {
   switch (stageId) {
     case "idea-capture":
-      return patch.writingIntent === undefined ? null : { writingIntent: patch.writingIntent };
+      return patch.writingIntent === undefined ? null : patch.writingIntent;
     case "topic-generation":
       return patch.confirmedTopic === undefined ? null : { confirmedTopic: patch.confirmedTopic };
     case "outline-planning":

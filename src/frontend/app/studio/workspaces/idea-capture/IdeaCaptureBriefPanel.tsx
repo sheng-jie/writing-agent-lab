@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-import type { Brief, ClarifyState, Material } from "./useClarifyState";
+import type { Brief, IdeaCaptureState, Material } from "./ideaCapture.types";
 
 const intentCardConfigs = [
   {
@@ -54,7 +54,7 @@ function materialFallback(materials: Material[]) {
  * 左侧写作意图沉淀区：确认前展示引导说明，确认后展示结构化写作意图卡片。
  * 纯展示 + 直接编辑，不感知 Agent/CopilotKit。
  */
-export function ClarifyBriefPanel({ controller }: { controller: ClarifyState }) {
+export function IdeaCaptureBriefPanel({ controller }: { controller: IdeaCaptureState }) {
   const { phase, brief, updatedCards, setBrief } = controller;
 
   return (

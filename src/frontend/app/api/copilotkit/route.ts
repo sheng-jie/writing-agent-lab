@@ -12,11 +12,8 @@ const runtime = new CopilotRuntime({
       // 这个地址对应后端 app.MapAGUI 暴露的 Agent endpoint。
       url: `${backendUrl}/agui/agents/clarification-agent`,
     }),
-    // Studio 各工作区使用独立的 CopilotKit agentId；后端专属 Agent 尚未拆分前，
+    // Studio 其余工作区使用独立的 CopilotKit agentId；后端专属 Agent 尚未拆分前，
     // 临时路由到同一个 AG-UI endpoint，确保前端切换机制和 tool 作用域先成立。
-    studioIdeaCaptureAgent: new HttpAgent({
-      url: `${backendUrl}/agui/agents/clarification-agent`,
-    }),
     studioTopicAgent: new HttpAgent({
       url: `${backendUrl}/agui/agents/clarification-agent`,
     }),

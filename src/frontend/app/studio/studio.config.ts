@@ -2,7 +2,7 @@ import type { StudioProject, StudioStep } from "./studio.types";
 import type { StudioStageId } from "./studio.workflow";
 
 export const studioAgentByStage: Record<StudioStageId, string> = {
-  "idea-capture": "studioIdeaCaptureAgent",
+  "idea-capture": "clarificationAgent",
   "topic-generation": "studioTopicAgent",
   "outline-planning": "studioOutlineAgent",
   drafting: "studioDraftingAgent",
@@ -69,8 +69,14 @@ export const studioSteps: StudioStep[] = [
 
 export const initialStudioProject: StudioProject = {
   title: "如何把零散灵感变成一篇能发布的深度文章",
-  ideas: ["起号阶段的真实卡点", "工作台价值", "可用类比"],
-  writingIntent: "帮助刚开始稳定输出的知识型自媒体作者，把零散灵感推进为可发布文章。",
+  writingIntent: {
+    rawNeed: "",
+    topic: "",
+    audience: "",
+    thesis: "",
+    materials: [],
+    selectedDirection: "",
+  },
   confirmedTopic: "把零散灵感变成可发布文章：一套自媒体写作工作台",
   outline: ["开场：创作者真正卡住的不是写字", "为什么需要固定工作流", "六个阶段如何推进", "AI 应该在什么位置介入", "文章形成前的检查清单"],
   draft: "很多自媒体作者的问题，不是没有灵感，而是灵感一旦进入写作阶段就会散掉。\n\n你可能在通勤时想到一个观点，在评论区看到一个读者问题，又在别人的文章里发现一个案例。但真正打开文档时，这些东西并不会自动变成一篇文章。\n\n所以我更建议把写作看成一个工作台，而不是一个空白文档。工作台的意义，是让每一步都有明确的输入和输出：先捕捉想法，再生成选题，接着规划大纲、写初稿、润色改写和文章配图。",

@@ -115,4 +115,38 @@ describe("Studio 写作工作流快照", () => {
     expect(workflow.currentStageId).toBe("idea-capture");
     expect(getWorkflowProgress(workflow)).toEqual({ acceptedCount: 0, percentage: 0 });
   });
+
+  it("上游写作意图变更会重置当前和所有下游阶段的状态和产物", () => {
+    const workflow = createInitialWorkflow({
+      "topic-generation": { confirmedTopic: "旧选题" },
+      "outline-planning": { outline: ["旧大纲"] },
+    });
+    workflow.currentStageId = "outline-planning";
+    workflow.stages["idea-capture"].status = "accepted";
+    workflow.stages["topic-generation"].status = "accepted";
+    workflow.stages["topic-generation"].accepted = { confirmedTopic: "旧选题" };
+    workflow.stages["outline-planning"].status = "in-progress";
+
+    const reset = resetWorkflowFromStage(workflow, "idea-capture");
+
+    expect(reset.currentStageId).toBe("idea-capture");
+    expect(reset.stages["idea-capture"]).toMatchObject({
+      status: "in-progress",
+      draft: null,
+      accepted: null,
+      revision: 0,
+    });
+    expect(reset.stages["topic-generation"]).toMatchObject({
+      status: "pending",
+      draft: null,
+      accepted: null,
+      revision: 0,
+    });
+    expect(reset.stages["outline-planning"]).toMatchObject({
+      status: "pending",
+      draft: null,
+      accepted: null,
+      revision: 0,
+    });
+  });
 });
