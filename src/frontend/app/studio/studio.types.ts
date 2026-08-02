@@ -35,6 +35,7 @@ export type StudioController = {
   stageAction: StageAction;
   ui: StudioUiState;
   project: StudioProject;
+  articleSaved: boolean;
   collapsed: boolean;
   toast: { text: string; visible: boolean };
   selectWorkspace: (stageId: StudioStageId) => void;
@@ -44,7 +45,8 @@ export type StudioController = {
   addIdea: () => void;
   goBack: () => void;
   runStageAction: () => void;
-  save: () => void;
+  resetStage: () => void;
+  saveArticle: () => void;
   copyStage: () => Promise<void>;
   notify: (message: string) => void;
 };

@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { studioSteps } from "../studio.config";
-import { getStageStateLabel } from "../studio.workflow";
+import { canSelectWorkspace, getStageStateLabel } from "../studio.workflow";
 import type { StudioController } from "../studio.types";
 
 export function StudioFlowRail({ controller }: { controller: StudioController }) {
@@ -35,6 +35,7 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
           const stage = controller.workflow.stages[step.id];
           const isActive = step.id === controller.activeWorkspaceId;
           const isDone = stage.status === "accepted";
+          const canSelect = canSelectWorkspace(controller.workflow, step.id);
 
           return (
             <button
@@ -42,6 +43,7 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
               type="button"
               className={cn("studio-step", isActive && "active", isDone && "done")}
               onClick={() => controller.selectWorkspace(step.id)}
+              disabled={!canSelect}
               aria-current={isActive ? "step" : undefined}
               data-title={step.title}
             >
@@ -52,7 +54,7 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
               <span className="studio-step-copy">
                 <strong>{step.title}</strong>
                 <small>{step.description}</small>
-                <em>{stage.status === "stale" ? "上游内容已变化，需要检查" : step.hint}</em>
+                <em>{canSelect ? step.hint : "完成前一阶段后可进入"}</em>
               </span>
               <span className="studio-step-state">
                 {getStageStateLabel(stage.status)}

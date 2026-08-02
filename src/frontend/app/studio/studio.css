@@ -11,6 +11,8 @@
 @media(prefers-reduced-motion:reduce){.fd-studio,.fd-studio *, .fd-studio *:before,.fd-studio *:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 .studio-agent-panel .copilotKitInput{border-radius:0!important}
 
+.studio-step:disabled{cursor:not-allowed;opacity:.52}.studio-step:hover:disabled{background:transparent}
+
 @media (min-width:1181px) {
 	.fd-studio {
 		height: 100dvh;
