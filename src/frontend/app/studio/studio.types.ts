@@ -37,6 +37,11 @@ export type StudioUiState = {
   toast: { text: string; visible: boolean };
 };
 
+export type StudioConfirmation = {
+  title: string;
+  description: string;
+};
+
 export type StudioController = {
   activeWorkspaceId: StudioStageId;
   activeStep: StudioStep;
@@ -47,12 +52,14 @@ export type StudioController = {
   articleSaved: boolean;
   collapsed: boolean;
   toast: { text: string; visible: boolean };
+  confirmation: StudioConfirmation | null;
   selectWorkspace: (stageId: StudioStageId) => void;
   toggleRail: () => void;
   updateProject: (patch: Partial<StudioProject>) => void;
   updateArtifact: (stageId: StudioStageId, patch: Record<string, string>) => void;
   updateWritingIntent: (patch: Partial<WritingIntent>) => boolean;
   confirmWritingIntent: (patch: Partial<WritingIntent>) => void;
+  registerAgentReset: (reset: () => void) => () => void;
   restartIdeaCapture: () => boolean;
   goBack: () => void;
   runStageAction: () => void;
@@ -60,4 +67,6 @@ export type StudioController = {
   saveArticle: () => void;
   copyStage: () => Promise<void>;
   notify: (message: string) => void;
+  confirmPendingAction: () => void;
+  cancelPendingAction: () => void;
 };

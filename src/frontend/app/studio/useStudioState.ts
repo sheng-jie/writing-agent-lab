@@ -15,7 +15,7 @@ import {
   type StageArtifact,
   type StudioStageId,
 } from "./studio.workflow";
-import type { StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
+import type { StudioConfirmation, StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
 
 const railStorageKey = "flowdraft-studio-rail";
 const initialUiState: StudioUiState = {
@@ -37,7 +37,10 @@ export function useStudioState(): StudioController {
   const [ui, setUi] = useState(initialUiState);
   const [project, setProject] = useState<StudioProject>(initialStudioProject);
   const [articleSaved, setArticleSaved] = useState(false);
+  const [confirmation, setConfirmation] = useState<StudioConfirmation | null>(null);
   const toastTimer = useRef<number | null>(null);
+  const agentResetRef = useRef<(() => void) | null>(null);
+  const pendingConfirmationRef = useRef<(() => void) | null>(null);
   const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
   const stageAction = getStageAction(workflow.stages[ui.activeWorkspaceId]);
 
@@ -132,10 +135,17 @@ export function useStudioState(): StudioController {
 
   function updateWritingIntent(patch: Partial<WritingIntent>) {
     const currentStage = workflow.stages["idea-capture"];
-    if (currentStage.status === "accepted" && !window.confirm("修改写作意图会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？")) {
+    if (currentStage.status === "accepted") {
+      requestConfirmation("修改写作意图", "修改写作意图会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？", () => applyWritingIntentUpdate(patch));
       return false;
     }
 
+    applyWritingIntentUpdate(patch);
+    return true;
+  }
+
+  function applyWritingIntentUpdate(patch: Partial<WritingIntent>) {
+    const currentStage = workflow.stages["idea-capture"];
     const nextIntent = {
       ...project.writingIntent,
       ...patch,
@@ -153,7 +163,6 @@ export function useStudioState(): StudioController {
     } else {
       updateStageDraft("idea-capture", nextIntent);
     }
-    return true;
   }
 
   function confirmWritingIntent(patch: Partial<WritingIntent>) {
@@ -176,18 +185,47 @@ export function useStudioState(): StudioController {
     notify("写作意图已确认，已可进入选题生成");
   }
 
+  function registerAgentReset(reset: () => void) {
+    agentResetRef.current = reset;
+    return () => {
+      if (agentResetRef.current === reset) agentResetRef.current = null;
+    };
+  }
+
+  function requestConfirmation(title: string, description: string, onConfirm: () => void) {
+    pendingConfirmationRef.current = onConfirm;
+    setConfirmation({ title, description });
+  }
+
+  function confirmPendingAction() {
+    const action = pendingConfirmationRef.current;
+    pendingConfirmationRef.current = null;
+    setConfirmation(null);
+    action?.();
+  }
+
+  function cancelPendingAction() {
+    pendingConfirmationRef.current = null;
+    setConfirmation(null);
+  }
+
   function restartIdeaCapture() {
     const hasDownstreamArtifacts = Object.values(workflow.stages).some((stage, index) => index > 0 && (stage.draft || stage.accepted));
-    if (workflow.stages["idea-capture"].status === "accepted" && !window.confirm(hasDownstreamArtifacts ? "重新开始会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？" : "重新开始写作意图识别吗？")) {
+    if (workflow.stages["idea-capture"].status === "accepted") {
+      requestConfirmation("重新开始写作意图识别", hasDownstreamArtifacts ? "重新开始会清空选题、大纲、初稿、润色稿和配图稿。" : "当前写作意图识别结果将被清空。", applyRestartIdeaCapture);
       return false;
     }
+    applyRestartIdeaCapture();
+    return true;
+  }
+
+  function applyRestartIdeaCapture() {
     setProject((current) => ({ ...current, writingIntent: initialStudioProject.writingIntent }));
     setWorkflow((current) => ({
       ...resetWorkflowFromStage(current, "idea-capture"),
       stages: { ...resetWorkflowFromStage(current, "idea-capture").stages, "idea-capture": { ...resetWorkflowFromStage(current, "idea-capture").stages["idea-capture"], draft: null } },
     }));
     notify("已重新开始写作意图识别");
-    return true;
   }
 
   function selectWorkspace(stageId: StudioStageId) {
@@ -257,8 +295,16 @@ export function useStudioState(): StudioController {
       return downstream.draft !== null || downstream.proposal !== null || downstream.accepted !== null;
     });
 
-    if (hasDownstreamArtifacts && !window.confirm("重置会清空当前及后续流程的全部产物，是否继续？")) return;
+    if (hasDownstreamArtifacts) {
+      requestConfirmation("重置当前阶段", "重置会清空当前及后续流程的全部产物。", () => applyStageReset(stageId));
+      return;
+    }
 
+    applyStageReset(stageId);
+  }
+
+  function applyStageReset(stageId: StudioStageId) {
+    agentResetRef.current?.();
     setWorkflow((current) => resetWorkflowFromStage(current, stageId));
     setProject((current) => clearProjectFromStage(current, stageId));
     setArticleSaved(false);
@@ -296,12 +342,14 @@ export function useStudioState(): StudioController {
     articleSaved,
     collapsed: ui.collapsed,
     toast: ui.toast,
+    confirmation,
     selectWorkspace,
     toggleRail,
     updateProject,
     updateArtifact,
     updateWritingIntent,
     confirmWritingIntent,
+    registerAgentReset,
     restartIdeaCapture,
     goBack,
     runStageAction,
@@ -309,6 +357,8 @@ export function useStudioState(): StudioController {
     saveArticle,
     copyStage,
     notify,
+    confirmPendingAction,
+    cancelPendingAction,
   };
 }
 

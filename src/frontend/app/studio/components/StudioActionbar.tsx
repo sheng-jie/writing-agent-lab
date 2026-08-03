@@ -1,6 +1,16 @@
 "use client";
 
 import { studioSteps } from "../studio.config";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getStageStateLabel } from "../studio.workflow";
 import type { StudioController } from "../studio.types";
 
@@ -14,28 +24,43 @@ export function StudioActionbar({ controller }: { controller: StudioController }
   const canSaveArticle = isFinalStage && stage.status === "accepted";
 
   return (
-    <footer className="studio-actionbar">
-      <div>
-        <b>{activeStep.title}</b>
-        <span>{getStageStateLabel(stage.status)} · {controller.stageAction.hint}</span>
-      </div>
+    <>
+      <footer className="studio-actionbar">
+        <div>
+          <b>{activeStep.title}</b>
+          <span>{getStageStateLabel(stage.status)} · {controller.stageAction.hint}</span>
+        </div>
 
-      <div className="studio-actions">
-        <button type="button" disabled={isFirstStep} onClick={controller.goBack}>
-          上一步
-        </button>
-        <button type="button" disabled={stage.status !== "accepted"} onClick={controller.resetStage}>
-          重置
-        </button>
-        <button
-          className="studio-primary"
-          type="button"
-          disabled={canSaveArticle ? false : !(canAdvance || canOpenNextStage)}
-          onClick={canSaveArticle ? controller.saveArticle : controller.runStageAction}
-        >
-          {canSaveArticle ? (controller.articleSaved ? "文章已保存" : "保存文章") : "下一步"}
-        </button>
-      </div>
-    </footer>
+        <div className="studio-actions">
+          <button type="button" disabled={isFirstStep} onClick={controller.goBack}>
+            上一步
+          </button>
+          <button type="button" disabled={stage.status !== "accepted"} onClick={controller.resetStage}>
+            重置
+          </button>
+          <button
+            className="studio-primary"
+            type="button"
+            disabled={canSaveArticle ? false : !(canAdvance || canOpenNextStage)}
+            onClick={canSaveArticle ? controller.saveArticle : controller.runStageAction}
+          >
+            {canSaveArticle ? (controller.articleSaved ? "文章已保存" : "保存文章") : "下一步"}
+          </button>
+        </div>
+      </footer>
+
+      <AlertDialog open={controller.confirmation !== null} onOpenChange={(open) => { if (!open) controller.cancelPendingAction(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{controller.confirmation?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{controller.confirmation?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={controller.cancelPendingAction}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={controller.confirmPendingAction}>确认</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

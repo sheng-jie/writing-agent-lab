@@ -1,6 +1,8 @@
 "use client";
 
 import { AgentPanel } from "@/components/agent/AgentPanel";
+import { useEffect, useRef } from "react";
+
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 import { studioAgentByStage } from "../../studio.config";
 import type { StudioController } from "../../studio.types";
@@ -8,12 +10,16 @@ import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function DraftingWorkspace({ controller }: { controller: StudioController }) {
   const agentId = studioAgentByStage.drafting;
+  const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
+
+  useEffect(() => controller.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
 
   return (
     <>
       <StepWorkspacePlaceholder />
 
       <AgentPanel
+        ref={agentPanelRef}
         key={agentId}
         agentId={agentId}
         className="studio-agent-panel"

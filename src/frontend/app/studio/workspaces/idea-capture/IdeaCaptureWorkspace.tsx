@@ -1,6 +1,6 @@
 "use client";
 
-import { AgentPanel } from "@/components/agent/AgentPanel";
+import { AgentPanel, type AgentPanelRef } from "@/components/agent/AgentPanel";
 import { useEffect, useRef, useState } from "react";
 
 import "./idea-capture.css";
@@ -12,20 +12,24 @@ import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
 import type { StudioController } from "../../studio.types";
 
 export function IdeaCaptureWorkspace({ controller }: { controller: StudioController }) {
-  const [resetKey, setResetKey] = useState(0);
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
+  const agentPanelRef = useRef<AgentPanelRef>(null);
   const phase = controller.workflow.stages["idea-capture"].status === "accepted"
     ? "card"
     : hasWritingIntent(controller.project.writingIntent) ? "clarifying" : "initial";
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
+    return controller.registerAgentReset(() => agentPanelRef.current?.reset());
+  }, [controller]);
+
+  useEffect(() => {
     if (prevPhaseRef.current === "card" && phase !== "card") {
       setUpdatedCards(new Set());
-      setResetKey((key) => key + 1);
+      agentPanelRef.current?.reset();
     }
     prevPhaseRef.current = phase;
-  }, [phase]);
+  }, [controller, phase]);
 
   function flashCard(name: string) {
     setUpdatedCards((current) => new Set(current).add(name));
@@ -45,7 +49,6 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
       const next = typeof updater === "function" ? updater(controller.project.writingIntent) : updater;
       controller.updateWritingIntent(next);
     },
-    resetKey,
     toast: controller.toast,
     updatedCards,
     notify: controller.notify,
@@ -73,7 +76,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
     restart: () => {
       if (controller.restartIdeaCapture()) {
         setUpdatedCards(new Set());
-        setResetKey((key) => key + 1);
+        agentPanelRef.current?.reset();
       }
     },
   };
@@ -87,7 +90,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
       </section>
 
       <AgentPanel
-        key={resetKey}
+        ref={agentPanelRef}
         agentId="clarificationAgent"
         className="studio-agent-panel"
         title="意图识别 Agent"

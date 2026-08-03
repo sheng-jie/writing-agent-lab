@@ -1,7 +1,7 @@
 "use client";
 
 import { CopilotChatMessageView, useDefaultRenderTool } from "@copilotkit/react-core/v2";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { useAgentChat } from "./useAgentChat";
 
 export interface AgentPanelProps {
   agentId: string;
+  ref?: Ref<AgentPanelRef>;
   className?: string;
   title: ReactNode;
   description?: ReactNode;
@@ -26,12 +27,17 @@ export interface AgentPanelProps {
   children?: ReactNode;
 }
 
+export interface AgentPanelRef {
+  reset: () => void;
+}
+
 /**
  * 通用 Agent 对话面板：负责布局、消息渲染、空状态、输入区和运行状态展示。
  * 不感知任何具体业务字段或工具，业务能力通过 children（ToolHost）注入。
  */
 export function AgentPanel({
   agentId,
+  ref,
   className,
   title,
   description,
@@ -44,6 +50,8 @@ export function AgentPanel({
 }: AgentPanelProps) {
   const chat = useAgentChat({ agentId, onError });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({ reset: chat.clearMessages }), [chat.clearMessages]);
 
   // 通用兜底渲染：所有接入页面统一具备，不必在各自 ToolHost 里重复调用。
   useDefaultRenderTool();

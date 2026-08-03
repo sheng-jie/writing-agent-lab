@@ -18,7 +18,6 @@ export type IdeaCaptureState = {
   phase: Phase;
   writingIntent: WritingIntentDraft;
   setWritingIntent: Dispatch<SetStateAction<WritingIntentDraft>>;
-  resetKey: number;
   toast: { text: string; visible: boolean };
   updatedCards: Set<string>;
   notify: (text: string) => void;
