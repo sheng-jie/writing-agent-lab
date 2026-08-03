@@ -60,17 +60,17 @@ export function AgentPanel({
     <section className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)} aria-label="Agent 对话区">
       {children}
 
-      <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+      <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
+          {description ? <p className="mt-1 truncate text-xs leading-4 text-muted-foreground">{description}</p> : null}
         </div>
-        <Badge variant={chat.isRunning ? "default" : "outline"} className="shrink-0">
+        <Badge variant={chat.isRunning ? "default" : "outline"} className="mt-0.5 shrink-0">
           {chat.isRunning ? runningBadge : idleBadge}
         </Badge>
       </header>
 
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="会话历史滚动区">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-2" aria-label="会话历史滚动区">
         {chat.hasMessages ? (
           <CopilotChatMessageView
             className={agentMessageViewClassName}

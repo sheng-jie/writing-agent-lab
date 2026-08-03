@@ -18,13 +18,18 @@ export interface AgentInputProps {
 export function AgentInput({ chat, placeholder }: AgentInputProps) {
   return (
     <CopilotChatInput
-      className="border-t border-border"
+      className="studio-agent-input"
       value={chat.input}
       onChange={chat.setInput}
       isRunning={chat.isRunning}
       autoFocus
       bottomAnchored
-      textArea={{ placeholder: chat.isRunning ? "Agent 正在思考…" : placeholder }}
+      addMenuButton={() => null}
+      textArea={{
+        "aria-label": placeholder ?? "输入消息",
+        className: "cpk:max-h-28 cpk:py-2 cpk:pr-2 cpk:text-sm cpk:leading-5",
+        placeholder: chat.isRunning ? "Agent 正在思考…" : "输入想法或继续补充…",
+      }}
       onSubmitMessage={(text) => {
         chat.setInput("");
         void chat.send(text);

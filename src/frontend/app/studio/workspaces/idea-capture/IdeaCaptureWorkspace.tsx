@@ -90,7 +90,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
         key={resetKey}
         agentId="clarificationAgent"
         className="studio-agent-panel"
-        title="写作意图编辑"
+        title="意图识别 Agent"
         description="通过关键追问补齐结构化写作意图的 7 个字段。"
         idleBadge={phase === "card" ? "已确认" : "识别中"}
         runningBadge="处理中"
@@ -100,10 +100,9 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
           description: "不必先整理成表格。Agent 会追问关键问题，并逐步沉淀写作意图。",
           examples: [
             {
-              title: "观点型示例",
-              copy: "从一个明确主张开始澄清文章的写作意图。",
-              value: "我最近在研究 AI 写作工具，想写一篇文章讨论为什么真正重要的不是自动生成，而是帮助创作者想清楚。",
-              mode: "send",
+              title: "GPT-5.6 vs DeepSeek V4 Pro",
+              copy: "先填入一个对比主题，再由你确认后发送给 Agent。",
+              value: "写一篇文章介绍 GPT-5.6 vs DeepSeek V4 Pro",
             },
           ],
         }}

@@ -9,7 +9,24 @@
 @media(max-width:1180px){.fd-studio,.rail-collapsed{height:auto;min-height:100vh;grid-template-columns:1fr}.studio-rail,.rail-collapsed .studio-rail{grid-template-rows:auto auto}.studio-progress,.studio-health{display:none}.studio-brand,.rail-collapsed .studio-brand{padding:16px 18px;flex-direction:row}.studio-brand-copy{display:grid!important}.studio-steps,.rail-collapsed .studio-steps{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));overflow:visible;padding:12px}.studio-step,.rail-collapsed .studio-step{grid-template-columns:36px minmax(0,1fr);justify-content:start;gap:12px}.studio-step:before{display:none}.studio-step-index b{display:none}.studio-step-index i{display:block}.studio-step-copy,.rail-collapsed .studio-step-copy{display:grid}.studio-step-state,.rail-collapsed .studio-step-state{display:none}.studio-workbench{min-height:840px}.studio-assistant,.studio-agent-panel{border-left:0;border-top:1px solid var(--rule);min-height:420px}.studio-content{grid-template-columns:1fr}}
 @media(max-width:760px){.fd-studio{padding:10px;gap:10px}.studio-topbar{grid-template-columns:1fr;padding:16px}.studio-title-area textarea{font-size:1.35rem;line-height:1.16}.studio-top-pills{justify-content:flex-start}.studio-steps,.rail-collapsed .studio-steps{display:flex;overflow-x:auto;scroll-snap-type:x mandatory}.studio-step,.rail-collapsed .studio-step{min-width:220px;scroll-snap-align:start}.studio-stage{padding:14px}.studio-grid,.studio-metrics,.studio-tones,.studio-images{grid-template-columns:1fr}.studio-actionbar{align-items:stretch;flex-direction:column}.studio-actionbar span{max-width:100%}.studio-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.studio-actions button{min-height:44px}.studio-save-state em{display:none}}
 @media(prefers-reduced-motion:reduce){.fd-studio,.fd-studio *, .fd-studio *:before,.fd-studio *:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
-.studio-agent-panel .copilotKitInput{border-radius:0!important}
+.studio-agent-panel>header{padding:12px 16px}
+.studio-agent-panel>header p{margin-top:4px;line-height:1.35}
+.studio-agent-panel .copilotKitInput{border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.studio-agent-panel .studio-agent-input{margin:8px 12px 10px;border:1px solid var(--rule)!important;border-radius:16px!important;background:var(--paper)!important;box-shadow:0 2px 8px color-mix(in oklch,var(--ink) 5%,transparent)!important;transition:border-color .16s ease,box-shadow .16s ease}
+.studio-agent-panel .studio-agent-input:focus-within{border-color:var(--teal)!important;box-shadow:0 0 0 3px color-mix(in oklch,var(--teal-soft) 78%,transparent),0 2px 8px color-mix(in oklch,var(--ink) 5%,transparent)!important}
+.studio-agent-panel .studio-agent-input textarea{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:0!important}
+.studio-agent-panel .agent-welcome-card{padding:18px;color:var(--ink)}
+.studio-agent-panel .agent-welcome-card>h3{font-size:.9375rem;line-height:1.45}
+.studio-agent-panel .agent-welcome-card>p{color:var(--muted);font-size:.8125rem;line-height:1.55}
+.studio-agent-panel .agent-welcome-examples{grid-template-columns:minmax(0,1fr)}
+.studio-agent-panel .agent-welcome-example{min-width:0;padding:12px;border-color:var(--rule);background:var(--paper);color:var(--ink);text-align:left;transition:transform .16s ease,border-color .16s ease,background-color .16s ease,box-shadow .16s ease}
+.studio-agent-panel .agent-welcome-example:hover:not(:disabled){border-color:color-mix(in oklch,var(--teal) 55%,var(--rule));background:color-mix(in oklch,var(--teal-soft) 42%,var(--paper));box-shadow:0 3px 8px color-mix(in oklch,var(--teal) 10%,transparent);transform:translateY(-1px)}
+.studio-agent-panel .agent-welcome-example:active:not(:disabled){background:var(--teal-soft);box-shadow:none;transform:translateY(0)}
+.studio-agent-panel .agent-welcome-example:focus-visible{border-color:var(--teal);box-shadow:0 0 0 3px color-mix(in oklch,var(--teal-soft) 82%,transparent);outline:0}
+.studio-agent-panel .agent-welcome-example-head{line-height:1.4}
+.studio-agent-panel .agent-welcome-example-head strong{min-width:0;font-size:.8125rem;line-height:1.45}
+.studio-agent-panel .agent-welcome-example-badge{background:color-mix(in oklch,var(--teal-soft) 72%,var(--paper));color:var(--teal-deep);font-size:.6875rem;line-height:1.4}
+.studio-agent-panel .agent-welcome-example-copy{color:var(--muted);font-size:.75rem;line-height:1.55}
 
 .studio-step:disabled{cursor:not-allowed;opacity:.52}.studio-step:hover:disabled{background:transparent}
 
