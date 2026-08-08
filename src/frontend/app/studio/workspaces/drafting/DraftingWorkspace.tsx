@@ -40,6 +40,7 @@ export function DraftingWorkspace({ controller }: { controller: StudioController
             },
           ],
         }}
+        onRunningChange={controller.setAgentRunning}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateArticleDraft" />
       </AgentPanel>

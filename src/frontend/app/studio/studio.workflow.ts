@@ -104,12 +104,89 @@ export function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageI
   };
 }
 
-export function getStageAction(stage: StageRecord): StageAction {
+export function updateStageArtifactDraft(
+  workflow: WritingWorkflowSnapshot,
+  stageId: StudioStageId,
+  patch: StageArtifact,
+  updatedAt: string,
+): WritingWorkflowSnapshot {
+  const stage = workflow.stages[stageId];
+  if (stage.status === "accepted") return workflow;
+
+  return {
+    ...workflow,
+    stages: {
+      ...workflow.stages,
+      [stageId]: {
+        ...stage,
+        draft: { ...stage.draft, ...patch },
+        updatedAt,
+      },
+    },
+  };
+}
+
+export function proposeStageArtifact(
+  workflow: WritingWorkflowSnapshot,
+  stageId: StudioStageId,
+  artifact: StageArtifact,
+  updatedAt: string,
+): WritingWorkflowSnapshot {
+  const updated = updateStageArtifactDraft(workflow, stageId, artifact, updatedAt);
+  const stage = updated.stages[stageId];
+
+  return {
+    ...updated,
+    stages: {
+      ...updated.stages,
+      [stageId]: {
+        ...stage,
+        proposal: stage.draft,
+      },
+    },
+  };
+}
+
+export function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
+  const stage = workflow.stages[stageId];
+  if (stage.status === "accepted" || stage.proposal === null) return workflow;
+  const nextStageId = getNextStageId(stageId);
+
+  return {
+    ...workflow,
+    currentStageId: nextStageId ?? stageId,
+    stages: {
+      ...workflow.stages,
+      [stageId]: {
+        ...stage,
+        status: "accepted",
+        accepted: stage.draft,
+        revision: stage.revision + 1,
+      },
+      ...(nextStageId && workflow.stages[nextStageId].status === "pending"
+        ? { [nextStageId]: { ...workflow.stages[nextStageId], status: "in-progress" as const } }
+        : {}),
+    },
+  };
+}
+
+export function resolveStageAcceptance(
+  workflow: WritingWorkflowSnapshot,
+  stageId: StudioStageId,
+  decision: "cancel" | "confirm",
+): WritingWorkflowSnapshot {
+  return decision === "confirm" ? acceptStageArtifact(workflow, stageId) : workflow;
+}
+
+export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false): StageAction {
   switch (stage.status) {
     case "pending":
       return { kind: "blocked", label: "下一步", hint: "请先完成前一阶段。" };
     case "in-progress":
-      return hasStageContent(stage)
+      if (agentRunning && hasStageContent(stage, candidateRequired)) {
+        return { kind: "blocked", label: "下一步", hint: "Agent 处理完成后才能进入下一步。" };
+      }
+      return hasStageContent(stage, candidateRequired)
         ? { kind: "advance", label: "下一步", hint: "完成当前内容后，即可确认并继续。" }
         : { kind: "blocked", label: "下一步", hint: "请先完成当前阶段内容。" };
     case "accepted":
@@ -117,8 +194,9 @@ export function getStageAction(stage: StageRecord): StageAction {
   }
 }
 
-function hasStageContent(stage: StageRecord) {
-  return stage.updatedAt !== null && Object.values(stage.draft ?? {}).some(hasArtifactContent);
+function hasStageContent(stage: StageRecord, candidateRequired: boolean) {
+  const artifact = candidateRequired ? stage.proposal : stage.draft;
+  return stage.updatedAt !== null && Object.values(artifact ?? {}).some(hasArtifactContent);
 }
 
 function hasArtifactContent(value: StageArtifactValue): boolean {

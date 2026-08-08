@@ -70,7 +70,7 @@ const intentCardConfigs = [
 ] as const;
 
 /**
- * 左侧写作意图沉淀区：确认前展示引导说明，确认后展示结构化写作意图卡片。
+ * 左侧写作意图沉淀区：候选产物生成前展示引导说明，生成后展示结构化写作意图卡片。
  * 纯展示，不感知 Agent/CopilotKit；卡片内容只由 Agent 更新。
  */
 export function IdeaCaptureIntentPanel({ controller }: { controller: IdeaCaptureState }) {
@@ -81,7 +81,7 @@ export function IdeaCaptureIntentPanel({ controller }: { controller: IdeaCapture
       <div className="fdc-panel-header">
         <div className="fdc-panel-title">
           <h2>{phase === "card" ? "写作意图卡片" : "写作意图沉淀区"}</h2>
-          <p>{phase === "card" ? "由右侧 Agent 澄清确认后生成，后续对话会继续同步更新。" : "确认前显示引导；确认后生成写作意图卡片。"}</p>
+          <p>{phase === "card" ? "当前草稿只读展示，后续修正继续通过右侧协作区完成。" : "生成前显示引导；生成后形成可继续修正的候选阶段产物。"}</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export function IdeaCaptureIntentPanel({ controller }: { controller: IdeaCapture
 
       {phase === "card" ? (
         <footer className="fdc-card-summary">
-          <div className="fdc-saved-hint">写作意图卡片已保存到当前写作项目。请继续在右侧与 Agent 对话来更新内容。</div>
+          <div className="fdc-saved-hint">候选写作意图已生成。你可以继续在右侧修正，准备好后点击“下一步”确认。</div>
         </footer>
       ) : null}
     </aside>

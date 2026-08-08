@@ -23,6 +23,7 @@ export interface AgentPanelProps {
   /** 首屏欢迎引导：未产生任何消息前展示，有消息后自动退出。不是空状态提示，而是主动引导。 */
   welcome: AgentWelcomeConfig;
   onError?: (error: unknown) => void;
+  onRunningChange?: (running: boolean) => void;
   /** 挂载该面板对应的业务 ToolHost（useFrontendTool / useHumanInTheLoop / useAgentContext 的调用方）。 */
   children?: ReactNode;
 }
@@ -46,6 +47,7 @@ export function AgentPanel({
   placeholder,
   welcome,
   onError,
+  onRunningChange,
   children,
 }: AgentPanelProps) {
   const chat = useAgentChat({ agentId, onError });
@@ -63,6 +65,10 @@ export function AgentPanel({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [chat.messages, chat.isRunning]);
+
+  useEffect(() => {
+    onRunningChange?.(chat.isRunning);
+  }, [chat.isRunning, onRunningChange]);
 
   return (
     <section className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)} aria-label="Agent 对话区">

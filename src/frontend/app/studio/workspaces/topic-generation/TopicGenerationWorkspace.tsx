@@ -41,6 +41,7 @@ export function TopicGenerationWorkspace({ controller }: { controller: StudioCon
           ],
         }}
         onError={() => controller.notify("Agent 出错了，请稍后重试")}
+        onRunningChange={controller.setAgentRunning}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateTopicCandidates" />
       </AgentPanel>

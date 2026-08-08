@@ -32,14 +32,14 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
     {
       name: "updateWritingIntent",
       description: "Patch one or more fields of the left-side writing intent. The patch keys must be from: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary.",
-      available: true,
+      available: controller.editable,
       parameters: writingIntentPatchSchema,
       handler: async (patch) => {
         const changedCards = controller.updateWritingIntent(patch);
         return { ok: true, changedCards };
       },
     },
-    [],
+    [controller],
   );
 
   useFrontendTool(
@@ -52,7 +52,7 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
         return { ok: true, highlighted: cardName };
       },
     },
-    [],
+    [controller],
   );
 
   useHumanInTheLoop<ClarificationArgs>(
@@ -74,14 +74,14 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
         </AgentCardShell>
       ),
     },
-    [],
+    [controller],
   );
 
   useHumanInTheLoop<WritingIntentConfirmationArgs>(
     {
       name: "confirmWritingIntent",
       description: "Ask the user to confirm whether the identified writing intent should be saved as the left-side writing intent card, or whether the agent should continue clarifying.",
-      available: phase === "clarifying",
+      available: controller.editable && phase !== "initial",
       parameters: writingIntentConfirmationArgsSchema,
       render: ({ args, status, respond }) => (
         <AgentCardShell status={status} pending={<WritingIntentConfirmPendingCard title={args.title} />}>
@@ -96,7 +96,7 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
         </AgentCardShell>
       ),
     },
-    [],
+    [controller, phase],
   );
 
   return null;

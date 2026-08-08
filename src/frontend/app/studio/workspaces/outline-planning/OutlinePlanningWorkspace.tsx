@@ -41,6 +41,7 @@ export function OutlinePlanningWorkspace({ controller }: { controller: StudioCon
             },
           ],
         }}
+        onRunningChange={controller.setAgentRunning}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateWritingOutline" />
       </AgentPanel>

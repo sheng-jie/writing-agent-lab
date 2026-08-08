@@ -10,10 +10,13 @@ import {
   getNextStageId,
   getStageAction,
   openWorkspace,
+  proposeStageArtifact,
+  resolveStageAcceptance,
   resetWorkflowFromStage,
   studioStageIds,
   type StageArtifact,
   type StudioStageId,
+  updateStageArtifactDraft,
 } from "./studio.workflow";
 import type { StudioConfirmation, StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
 
@@ -37,12 +40,17 @@ export function useStudioState(): StudioController {
   const [ui, setUi] = useState(initialUiState);
   const [project, setProject] = useState<StudioProject>(initialStudioProject);
   const [articleSaved, setArticleSaved] = useState(false);
+  const [agentRunning, setAgentRunning] = useState(false);
   const [confirmation, setConfirmation] = useState<StudioConfirmation | null>(null);
   const toastTimer = useRef<number | null>(null);
   const agentResetRef = useRef<(() => void) | null>(null);
   const pendingConfirmationRef = useRef<(() => void) | null>(null);
   const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
-  const stageAction = getStageAction(workflow.stages[ui.activeWorkspaceId]);
+  const stageAction = getStageAction(
+    workflow.stages[ui.activeWorkspaceId],
+    agentRunning,
+    ui.activeWorkspaceId === "idea-capture",
+  );
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -120,23 +128,13 @@ export function useStudioState(): StudioController {
   }
 
   function updateStageDraft(stageId: StudioStageId, patch: StageArtifact) {
-    setWorkflow((current) => ({
-      ...current,
-      stages: {
-        ...current.stages,
-        [stageId]: {
-          ...current.stages[stageId],
-          draft: { ...current.stages[stageId].draft, ...patch },
-          updatedAt: new Date().toISOString(),
-        },
-      },
-    }));
+    setWorkflow((current) => updateStageArtifactDraft(current, stageId, patch, new Date().toISOString()));
   }
 
   function updateWritingIntent(patch: Partial<WritingIntent>) {
     const currentStage = workflow.stages["idea-capture"];
     if (currentStage.status === "accepted") {
-      requestConfirmation("修改写作意图", "修改写作意图会清空选题、大纲、初稿、润色稿和配图稿。确认继续吗？", () => applyWritingIntentUpdate(patch));
+      notify("写作意图已确认，请重新开始后再修改");
       return false;
     }
 
@@ -145,24 +143,12 @@ export function useStudioState(): StudioController {
   }
 
   function applyWritingIntentUpdate(patch: Partial<WritingIntent>) {
-    const currentStage = workflow.stages["idea-capture"];
     const nextIntent = {
       ...project.writingIntent,
       ...patch,
     };
     setProject((current) => ({ ...current, writingIntent: nextIntent }));
-    if (currentStage.status === "accepted") {
-      setWorkflow((current) => ({
-        ...resetWorkflowFromStage(current, "idea-capture"),
-        stages: {
-          ...resetWorkflowFromStage(current, "idea-capture").stages,
-          "idea-capture": { ...resetWorkflowFromStage(current, "idea-capture").stages["idea-capture"], draft: nextIntent },
-        },
-      }));
-      notify("写作意图已更新，后续阶段已重置");
-    } else {
-      updateStageDraft("idea-capture", nextIntent);
-    }
+    updateStageDraft("idea-capture", nextIntent);
   }
 
   function confirmWritingIntent(patch: Partial<WritingIntent>) {
@@ -171,18 +157,8 @@ export function useStudioState(): StudioController {
       ...patch,
     };
     setProject((current) => ({ ...current, writingIntent: nextIntent }));
-    setWorkflow((current) => ({
-      ...current,
-      currentStageId: "topic-generation",
-      stages: {
-        ...current.stages,
-        "idea-capture": { ...current.stages["idea-capture"], status: "accepted", draft: nextIntent, accepted: nextIntent, revision: current.stages["idea-capture"].revision + 1 },
-        "topic-generation": current.stages["topic-generation"].status === "pending"
-          ? { ...current.stages["topic-generation"], status: "in-progress" }
-          : current.stages["topic-generation"],
-      },
-    }));
-    notify("写作意图已确认，已可进入选题生成");
+    setWorkflow((current) => proposeStageArtifact(current, "idea-capture", nextIntent, new Date().toISOString()));
+    notify("结构化写作意图已生成，可以继续修正");
   }
 
   function registerAgentReset(reset: () => void) {
@@ -221,10 +197,16 @@ export function useStudioState(): StudioController {
 
   function applyRestartIdeaCapture() {
     setProject((current) => ({ ...current, writingIntent: initialStudioProject.writingIntent }));
-    setWorkflow((current) => ({
-      ...resetWorkflowFromStage(current, "idea-capture"),
-      stages: { ...resetWorkflowFromStage(current, "idea-capture").stages, "idea-capture": { ...resetWorkflowFromStage(current, "idea-capture").stages["idea-capture"], draft: null } },
-    }));
+    setWorkflow((current) => {
+      const reset = resetWorkflowFromStage(current, "idea-capture");
+      return {
+        ...reset,
+        stages: {
+          ...reset.stages,
+          "idea-capture": { ...reset.stages["idea-capture"], draft: null },
+        },
+      };
+    });
     notify("已重新开始写作意图识别");
   }
 
@@ -243,7 +225,7 @@ export function useStudioState(): StudioController {
 
   function runStageAction() {
     const stageId = ui.activeWorkspaceId;
-    const action = getStageAction(workflow.stages[stageId]);
+    const action = getStageAction(workflow.stages[stageId], agentRunning, stageId === "idea-capture");
 
     if (action.kind === "completed") {
       const nextStageId = getNextStageId(stageId);
@@ -256,24 +238,27 @@ export function useStudioState(): StudioController {
       return;
     }
 
-    setWorkflow((current) => {
-      const nextStageId = getNextStageId(stageId);
-      return {
-        ...current,
-        currentStageId: nextStageId ?? stageId,
-        stages: {
-          ...current.stages,
-          [stageId]: {
-            ...current.stages[stageId],
-            status: "accepted",
-            accepted: current.stages[stageId].draft,
-            revision: current.stages[stageId].revision + 1,
-          },
-          ...(nextStageId && current.stages[nextStageId].status === "pending"
-            ? { [nextStageId]: { ...current.stages[nextStageId], status: "in-progress" } }
-            : {}),
+    if (agentRunning) {
+      notify("Agent 处理完成后才能进入下一步");
+      return;
+    }
+
+    if (stageId === "idea-capture") {
+      const intent = project.writingIntent;
+      requestConfirmation(
+        "确认写作意图并进入选题生成",
+        `确认后，捕捉想法阶段将锁定并进入选题生成。写作主题：${intent.topic || "未填写"}；目标读者：${intent.audience || "未填写"}；核心观点：${intent.coreViewpoint || "未填写"}。`,
+        () => {
+          setWorkflow((current) => resolveStageAcceptance(current, stageId, "confirm"));
+          setUi((current) => ({ ...current, activeWorkspaceId: "topic-generation" }));
+          notify("写作意图已确认，已进入选题生成");
         },
-      };
+      );
+      return;
+    }
+
+    setWorkflow((current) => {
+      return resolveStageAcceptance(current, stageId, "confirm");
     });
     const nextStageId = getNextStageId(stageId);
     if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
@@ -340,6 +325,7 @@ export function useStudioState(): StudioController {
     ui,
     project,
     articleSaved,
+    agentRunning,
     collapsed: ui.collapsed,
     toast: ui.toast,
     confirmation,
@@ -349,6 +335,7 @@ export function useStudioState(): StudioController {
     updateArtifact,
     updateWritingIntent,
     confirmWritingIntent,
+    setAgentRunning,
     registerAgentReset,
     restartIdeaCapture,
     goBack,

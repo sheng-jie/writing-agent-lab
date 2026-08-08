@@ -50,6 +50,7 @@ export type StudioController = {
   ui: StudioUiState;
   project: StudioProject;
   articleSaved: boolean;
+  agentRunning: boolean;
   collapsed: boolean;
   toast: { text: string; visible: boolean };
   confirmation: StudioConfirmation | null;
@@ -59,6 +60,7 @@ export type StudioController = {
   updateArtifact: (stageId: StudioStageId, patch: Record<string, string>) => void;
   updateWritingIntent: (patch: Partial<WritingIntent>) => boolean;
   confirmWritingIntent: (patch: Partial<WritingIntent>) => void;
+  setAgentRunning: (running: boolean) => void;
   registerAgentReset: (reset: () => void) => () => void;
   restartIdeaCapture: () => boolean;
   goBack: () => void;

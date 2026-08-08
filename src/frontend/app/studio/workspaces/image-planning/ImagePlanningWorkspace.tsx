@@ -41,6 +41,7 @@ export function ImagePlanningWorkspace({ controller }: { controller: StudioContr
             },
           ],
         }}
+        onRunningChange={controller.setAgentRunning}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateIllustrationBrief" />
       </AgentPanel>

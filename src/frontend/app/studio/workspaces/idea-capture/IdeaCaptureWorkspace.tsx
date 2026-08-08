@@ -14,7 +14,7 @@ import type { StudioController } from "../../studio.types";
 export function IdeaCaptureWorkspace({ controller }: { controller: StudioController }) {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
   const agentPanelRef = useRef<AgentPanelRef>(null);
-  const phase = controller.workflow.stages["idea-capture"].status === "accepted"
+  const phase = controller.workflow.stages["idea-capture"].proposal !== null
     ? "card"
     : hasWritingIntent(controller.project.writingIntent) ? "clarifying" : "initial";
   const prevPhaseRef = useRef(phase);
@@ -44,6 +44,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
   const ideaCaptureController: IdeaCaptureState = {
     phase,
+    editable: controller.workflow.stages["idea-capture"].status !== "accepted",
     writingIntent: controller.project.writingIntent,
     setWritingIntent: (updater) => {
       const next = typeof updater === "function" ? updater(controller.project.writingIntent) : updater;
@@ -95,7 +96,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
         className="studio-agent-panel"
         title="意图识别 Agent"
         description="通过关键追问补齐结构化写作意图的 7 个字段。"
-        idleBadge={phase === "card" ? "已确认" : "识别中"}
+        idleBadge={phase === "card" ? "可继续修正" : "识别中"}
         runningBadge="处理中"
         placeholder="输入一个模糊想法，例如：我想写一篇关于 AI Agent 如何帮助创作者理清想法的文章…"
         welcome={{
@@ -110,6 +111,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
           ],
         }}
         onError={() => controller.notify("Agent 出错了，请稍后重试")}
+        onRunningChange={controller.setAgentRunning}
       >
         <IdeaCaptureCopilotTools controller={ideaCaptureController} />
       </AgentPanel>

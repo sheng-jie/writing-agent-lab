@@ -40,6 +40,7 @@ export function PolishingWorkspace({ controller }: { controller: StudioControlle
             },
           ],
         }}
+        onRunningChange={controller.setAgentRunning}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="polishDraft" />
       </AgentPanel>

@@ -16,6 +16,7 @@ export type WritingIntentDraft = {
 
 export type IdeaCaptureState = {
   phase: Phase;
+  editable: boolean;
   writingIntent: WritingIntentDraft;
   setWritingIntent: Dispatch<SetStateAction<WritingIntentDraft>>;
   toast: { text: string; visible: boolean };
