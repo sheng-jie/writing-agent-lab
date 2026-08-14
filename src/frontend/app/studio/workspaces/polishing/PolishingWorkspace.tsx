@@ -41,6 +41,10 @@ export function PolishingWorkspace({ controller }: { controller: StudioControlle
           ],
         }}
         onRunningChange={controller.setAgentRunning}
+        initialMessages={controller.getAgentMessages(agentId)}
+        onMessagesChange={(messages) => controller.updateAgentMessages(agentId, messages)}
+        onDraftChange={controller.setAgentDraftActive}
+        restoreKey={controller.agentMessagesRestoreKey}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="polishDraft" />
       </AgentPanel>

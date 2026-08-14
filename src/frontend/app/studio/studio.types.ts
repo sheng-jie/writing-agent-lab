@@ -1,3 +1,5 @@
+import type { AgentMessage } from "@/components/agent/useAgentChat";
+
 import type { StageAction, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
 
 export type WritingIntent = {
@@ -51,6 +53,9 @@ export type StudioController = {
   project: StudioProject;
   articleSaved: boolean;
   agentRunning: boolean;
+  saveWarning: string | null;
+  externalProgressAvailable: boolean;
+  agentMessagesRestoreKey: number;
   collapsed: boolean;
   toast: { text: string; visible: boolean };
   confirmation: StudioConfirmation | null;
@@ -61,7 +66,11 @@ export type StudioController = {
   updateWritingIntent: (patch: Partial<WritingIntent>) => boolean;
   proposeWritingIntent: (patch: Partial<WritingIntent>) => void;
   setAgentRunning: (running: boolean) => void;
+  setAgentDraftActive: (active: boolean) => void;
   registerAgentReset: (reset: () => void) => () => void;
+  getAgentMessages: (agentId: string) => AgentMessage[] | undefined;
+  updateAgentMessages: (agentId: string, messages: AgentMessage[]) => void;
+  loadExternalProgress: () => void;
   restartIdeaCapture: () => boolean;
   goBack: () => void;
   runStageAction: () => void;

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { AgentInput } from "./AgentInput";
 import { AgentAssistantMessage, AgentUserMessage, agentMessageViewClassName } from "./AgentMessages";
 import { AgentWelcome, type AgentWelcomeConfig } from "./AgentWelcome";
-import { useAgentChat } from "./useAgentChat";
+import { useAgentChat, type AgentMessage } from "./useAgentChat";
 
 export interface AgentPanelProps {
   agentId: string;
@@ -24,6 +24,10 @@ export interface AgentPanelProps {
   welcome: AgentWelcomeConfig;
   onError?: (error: unknown) => void;
   onRunningChange?: (running: boolean) => void;
+  initialMessages?: AgentMessage[];
+  onMessagesChange?: (messages: AgentMessage[]) => void;
+  onDraftChange?: (hasDraft: boolean) => void;
+  restoreKey?: number;
   /** 挂载该面板对应的业务 ToolHost（useFrontendTool / useHumanInTheLoop / useAgentContext 的调用方）。 */
   children?: ReactNode;
 }
@@ -48,9 +52,13 @@ export function AgentPanel({
   welcome,
   onError,
   onRunningChange,
+  initialMessages,
+  onMessagesChange,
+  onDraftChange,
+  restoreKey,
   children,
 }: AgentPanelProps) {
-  const chat = useAgentChat({ agentId, onError });
+  const chat = useAgentChat({ agentId, onError, initialMessages, onMessagesChange, onDraftChange, restoreKey });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({ reset: chat.clearMessages }), [chat.clearMessages]);

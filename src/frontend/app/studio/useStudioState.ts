@@ -3,7 +3,17 @@
 import { useAgentContext } from "@copilotkit/react-core/v2";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import type { AgentMessage } from "@/components/agent/useAgentChat";
+
 import { initialStudioProject, studioSteps } from "./studio.config";
+import {
+  clearStudioProgress,
+  loadStudioProgress,
+  parseStudioProgress,
+  saveStudioProgress,
+  studioProgressStorageKey,
+  type StudioProgressSnapshot,
+} from "./studio.persistence";
 import {
   canSelectWorkspace,
   createInitialWorkflow,
@@ -42,19 +52,47 @@ export function useStudioState(): StudioController {
   const [articleSaved, setArticleSaved] = useState(false);
   const [agentRunning, setAgentRunning] = useState(false);
   const [confirmation, setConfirmation] = useState<StudioConfirmation | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const [agentDraftActive, setAgentDraftActive] = useState(false);
+  const [externalProgress, setExternalProgress] = useState<StudioProgressSnapshot | null>(null);
+  const [agentMessagesRestoreKey, setAgentMessagesRestoreKey] = useState(0);
+  const [progressHydrated, setProgressHydrated] = useState(false);
+  const [agentMessages, setAgentMessages] = useState<Record<string, AgentMessage[]>>({});
   const toastTimer = useRef<number | null>(null);
   const agentResetRef = useRef<(() => void) | null>(null);
-  const pendingConfirmationRef = useRef<(() => void) | null>(null);
+  const pendingConfirmationRef = useRef<(() => boolean | void) | null>(null);
+  const skipNextSaveRef = useRef(false);
   const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
-  const stageAction = getStageAction(
-    workflow.stages[ui.activeWorkspaceId],
-    agentRunning,
-    ui.activeWorkspaceId === "idea-capture",
-  );
+  const externallyBusyRef = useRef(false);
+  externallyBusyRef.current = agentRunning || agentDraftActive;
+  const stageAction = progressHydrated
+    ? getStageAction(
+        workflow.stages[ui.activeWorkspaceId],
+        agentRunning,
+        ui.activeWorkspaceId === "idea-capture",
+      )
+    : { kind: "blocked" as const, label: "下一步" as const, hint: "正在恢复上次进度。" };
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setUi((current) => ({ ...current, collapsed: localStorage.getItem(railStorageKey) === "true" }));
+      const hadStoredProgress = localStorage.getItem(studioProgressStorageKey) !== null;
+      const progress = loadStudioProgress();
+      if (progress) {
+        setWorkflow(progress.workflow);
+        setProject(progress.project);
+        setArticleSaved(progress.articleSaved);
+        setAgentMessages(progress.agentMessages as Record<string, AgentMessage[]>);
+      }
+      setUi((current) => ({
+        ...current,
+        activeWorkspaceId: progress?.activeWorkspaceId ?? current.activeWorkspaceId,
+        collapsed: localStorage.getItem(railStorageKey) === "true",
+        toast: !progress && hadStoredProgress
+          ? { text: "上次进度无法恢复，已重新开始", visible: true }
+          : current.toast,
+      }));
+      setProgressHydrated(true);
+      setAgentMessagesRestoreKey((current) => current + 1);
     });
 
     return () => {
@@ -62,6 +100,49 @@ export function useStudioState(): StudioController {
       if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== studioProgressStorageKey || event.newValue === null) return;
+      const progress = parseStudioProgress(event.newValue);
+      if (!progress) return;
+
+      if (externallyBusyRef.current) {
+        setExternalProgress(progress);
+        return;
+      }
+
+      applyProgress(progress);
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!progressHydrated || workflow.stages["idea-capture"].status !== "accepted") return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        saveStudioProgress({
+          workflow,
+          project,
+          activeWorkspaceId: ui.activeWorkspaceId,
+          articleSaved,
+          agentMessages,
+        });
+        setSaveWarning(null);
+      } catch {
+        setSaveWarning("当前修改尚未保存");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [agentMessages, articleSaved, progressHydrated, project, ui.activeWorkspaceId, workflow]);
 
   const agentContext = useMemo(
     () => ({
@@ -90,6 +171,22 @@ export function useStudioState(): StudioController {
     toastTimer.current = window.setTimeout(() => {
       setUi((current) => ({ ...current, toast: { ...current.toast, visible: false } }));
     }, 1800);
+  }
+
+  function applyProgress(progress: StudioProgressSnapshot) {
+    skipNextSaveRef.current = true;
+    setWorkflow(progress.workflow);
+    setProject(progress.project);
+    setArticleSaved(progress.articleSaved);
+    setAgentMessages(progress.agentMessages as Record<string, AgentMessage[]>);
+    setAgentMessagesRestoreKey((current) => current + 1);
+    setUi((current) => ({ ...current, activeWorkspaceId: progress.activeWorkspaceId }));
+    setExternalProgress(null);
+    setSaveWarning(null);
+  }
+
+  function loadExternalProgress() {
+    if (externalProgress) applyProgress(externalProgress);
   }
 
   function toggleRail() {
@@ -168,16 +265,25 @@ export function useStudioState(): StudioController {
     };
   }
 
-  function requestConfirmation(title: string, description: string, onConfirm: () => void) {
+  function getAgentMessages(agentId: string) {
+    return progressHydrated ? agentMessages[agentId] ?? [] : undefined;
+  }
+
+  function updateAgentMessages(agentId: string, messages: AgentMessage[]) {
+    if (!progressHydrated) return;
+    setAgentMessages((current) => current[agentId] === messages ? current : { ...current, [agentId]: messages });
+  }
+
+  function requestConfirmation(title: string, description: string, onConfirm: () => boolean | void) {
     pendingConfirmationRef.current = onConfirm;
     setConfirmation({ title, description });
   }
 
   function confirmPendingAction() {
     const action = pendingConfirmationRef.current;
+    if (action?.() === false) return;
     pendingConfirmationRef.current = null;
     setConfirmation(null);
-    action?.();
   }
 
   function cancelPendingAction() {
@@ -196,6 +302,9 @@ export function useStudioState(): StudioController {
   }
 
   function applyRestartIdeaCapture() {
+    clearStudioProgress();
+    setAgentMessages({});
+    setAgentMessagesRestoreKey((current) => current + 1);
     agentResetRef.current?.();
     setProject((current) => clearProjectFromStage(current, "idea-capture"));
     setWorkflow((current) => {
@@ -243,9 +352,24 @@ export function useStudioState(): StudioController {
         "确认写作意图并进入选题生成",
         `确认后，捕捉想法阶段将锁定并进入选题生成。写作主题：${intent.topic || "未填写"}；目标读者：${intent.audience || "未填写"}；核心观点：${intent.coreViewpoint || "未填写"}。`,
         () => {
-          setWorkflow((current) => resolveStageAcceptance(current, stageId, "confirm"));
+          const acceptedWorkflow = resolveStageAcceptance(workflow, stageId, "confirm");
+          try {
+            saveStudioProgress({
+              workflow: acceptedWorkflow,
+              project,
+              activeWorkspaceId: "topic-generation",
+              articleSaved,
+              agentMessages,
+            });
+            setSaveWarning(null);
+          } catch {
+            setSaveWarning("进度保存失败，尚未进入下一阶段");
+            return false;
+          }
+          setWorkflow(acceptedWorkflow);
           setUi((current) => ({ ...current, activeWorkspaceId: "topic-generation" }));
           notify("写作意图已确认，已进入选题生成");
+          return true;
         },
       );
       return;
@@ -320,6 +444,9 @@ export function useStudioState(): StudioController {
     project,
     articleSaved,
     agentRunning,
+    saveWarning,
+    externalProgressAvailable: externalProgress !== null,
+    agentMessagesRestoreKey,
     collapsed: ui.collapsed,
     toast: ui.toast,
     confirmation,
@@ -330,7 +457,11 @@ export function useStudioState(): StudioController {
     updateWritingIntent,
     proposeWritingIntent,
     setAgentRunning,
+    setAgentDraftActive,
     registerAgentReset,
+    getAgentMessages,
+    updateAgentMessages,
+    loadExternalProgress,
     restartIdeaCapture,
     goBack,
     runStageAction,

@@ -42,6 +42,10 @@ export function ImagePlanningWorkspace({ controller }: { controller: StudioContr
           ],
         }}
         onRunningChange={controller.setAgentRunning}
+        initialMessages={controller.getAgentMessages(agentId)}
+        onMessagesChange={(messages) => controller.updateAgentMessages(agentId, messages)}
+        onDraftChange={controller.setAgentDraftActive}
+        restoreKey={controller.agentMessagesRestoreKey}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateIllustrationBrief" />
       </AgentPanel>

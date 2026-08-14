@@ -112,6 +112,10 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
         }}
         onError={() => controller.notify("Agent 出错了，请稍后重试")}
         onRunningChange={controller.setAgentRunning}
+        initialMessages={controller.getAgentMessages("ideaCaptureAgent")}
+        onMessagesChange={(messages) => controller.updateAgentMessages("ideaCaptureAgent", messages)}
+        onDraftChange={controller.setAgentDraftActive}
+        restoreKey={controller.agentMessagesRestoreKey}
       >
         <IdeaCaptureCopilotTools controller={ideaCaptureController} />
       </AgentPanel>

@@ -28,10 +28,15 @@ export function StudioActionbar({ controller }: { controller: StudioController }
       <footer className="studio-actionbar">
         <div>
           <b>{activeStep.title}</b>
-          <span>{getStageStateLabel(stage.status)} · {controller.stageAction.hint}</span>
+          <span>{controller.saveWarning ?? `${getStageStateLabel(stage.status)} · ${controller.stageAction.hint}`}</span>
         </div>
 
         <div className="studio-actions">
+          {controller.externalProgressAvailable ? (
+            <button type="button" onClick={controller.loadExternalProgress}>
+              载入新进度
+            </button>
+          ) : null}
           <button type="button" disabled={isFirstStep} onClick={controller.goBack}>
             上一步
           </button>

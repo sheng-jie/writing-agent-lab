@@ -41,6 +41,10 @@ export function DraftingWorkspace({ controller }: { controller: StudioController
           ],
         }}
         onRunningChange={controller.setAgentRunning}
+        initialMessages={controller.getAgentMessages(agentId)}
+        onMessagesChange={(messages) => controller.updateAgentMessages(agentId, messages)}
+        onDraftChange={controller.setAgentDraftActive}
+        restoreKey={controller.agentMessagesRestoreKey}
       >
         <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateArticleDraft" />
       </AgentPanel>

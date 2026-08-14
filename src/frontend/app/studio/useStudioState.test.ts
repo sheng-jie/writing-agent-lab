@@ -20,6 +20,7 @@ const writingIntent = {
 };
 
 const storage = new Map<string, string>();
+const progressStorageKey = "flowdraft-studio-progress";
 
 beforeAll(() => {
   const localStorageMock: Storage = {
@@ -32,6 +33,14 @@ beforeAll(() => {
   };
   Object.defineProperty(window, "localStorage", { configurable: true, value: localStorageMock });
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: localStorageMock });
+  Object.defineProperty(window, "requestAnimationFrame", {
+    configurable: true,
+    value: (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    },
+  });
+  Object.defineProperty(window, "cancelAnimationFrame", { configurable: true, value: vi.fn() });
 });
 
 describe("Studio 工作流状态控制器", () => {
@@ -111,6 +120,125 @@ describe("Studio 工作流状态控制器", () => {
     expect(result.current.workflow.stages["topic-generation"].status).toBe("in-progress");
   });
 
+  it("首次确认下一步后刷新可恢复当前写作工作流", () => {
+    const first = renderHook(() => useStudioState());
+
+    act(() => first.result.current.proposeWritingIntent(writingIntent));
+    act(() => first.result.current.runStageAction());
+    act(() => first.result.current.confirmPendingAction());
+    first.unmount();
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.activeWorkspaceId).toBe("topic-generation");
+    expect(restored.result.current.project.writingIntent).toEqual(writingIntent);
+    expect(restored.result.current.workflow.currentStageId).toBe("topic-generation");
+    expect(restored.result.current.workflow.stages["idea-capture"]).toMatchObject({
+      status: "accepted",
+      accepted: writingIntent,
+    });
+  });
+
+  it("首次确认前刷新不恢复捕捉想法草稿", () => {
+    const first = renderHook(() => useStudioState());
+
+    act(() => first.result.current.proposeWritingIntent(writingIntent));
+    first.unmount();
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.activeWorkspaceId).toBe("idea-capture");
+    expect(restored.result.current.project.writingIntent.rawIdea).toBe("");
+    expect(restored.result.current.workflow.stages["idea-capture"].proposal).toBeNull();
+  });
+
+  it("损坏的可恢复进度会整体清除并回到初始状态", () => {
+    localStorage.setItem(progressStorageKey, "{not-valid-json");
+
+    const { result } = renderHook(() => useStudioState());
+
+    expect(result.current.workflow.currentStageId).toBe("idea-capture");
+    expect(result.current.project.writingIntent.rawIdea).toBe("");
+    expect(localStorage.getItem(progressStorageKey)).toBeNull();
+    expect(result.current.toast).toEqual({ text: "上次进度无法恢复，已重新开始", visible: true });
+  });
+
+  it("首次确认时保存失败不会推进工作流", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => {
+      throw new DOMException("Quota exceeded", "QuotaExceededError");
+    });
+
+    act(() => result.current.confirmPendingAction());
+
+    expect(result.current.workflow.currentStageId).toBe("idea-capture");
+    expect(result.current.activeWorkspaceId).toBe("idea-capture");
+    expect(result.current.workflow.stages["idea-capture"].status).toBe("in-progress");
+    expect(result.current.saveWarning).toBe("进度保存失败，尚未进入下一阶段");
+    setItem.mockRestore();
+  });
+
+  it("自动保存失败时保留当前修改并持续警告", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    act(() => result.current.confirmPendingAction());
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new DOMException("Quota exceeded", "QuotaExceededError");
+    });
+
+    act(() => result.current.updateProject({ confirmedTopic: "新的确定选题" }));
+
+    expect(result.current.project.confirmedTopic).toBe("新的确定选题");
+    expect(result.current.saveWarning).toBe("当前修改尚未保存");
+    setItem.mockRestore();
+  });
+
+  it("空闲时自动载入其他标签保存的新进度", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    act(() => result.current.confirmPendingAction());
+    const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
+    external.savedAt = "2026-08-14T10:00:00.000Z";
+    external.project.confirmedTopic = "另一标签的新选题";
+    localStorage.setItem(progressStorageKey, JSON.stringify(external));
+
+    act(() => window.dispatchEvent(new StorageEvent("storage", {
+      key: progressStorageKey,
+      newValue: JSON.stringify(external),
+    })));
+
+    expect(result.current.project.confirmedTopic).toBe("另一标签的新选题");
+    expect(result.current.externalProgressAvailable).toBe(false);
+  });
+
+  it("有未发送输入时提示手动载入其他标签的新进度", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    act(() => result.current.confirmPendingAction());
+    act(() => result.current.setAgentDraftActive(true));
+    const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
+    external.savedAt = "2026-08-14T10:00:00.000Z";
+    external.project.confirmedTopic = "另一标签的新选题";
+    localStorage.setItem(progressStorageKey, JSON.stringify(external));
+
+    act(() => window.dispatchEvent(new StorageEvent("storage", {
+      key: progressStorageKey,
+      newValue: JSON.stringify(external),
+    })));
+
+    expect(result.current.project.confirmedTopic).not.toBe("另一标签的新选题");
+    expect(result.current.externalProgressAvailable).toBe(true);
+
+    act(() => result.current.loadExternalProgress());
+    expect(result.current.project.confirmedTopic).toBe("另一标签的新选题");
+    expect(result.current.externalProgressAvailable).toBe(false);
+  });
+
   it("接受后锁定写作意图，只有重新开始入口可以修改", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.proposeWritingIntent(writingIntent));
@@ -157,5 +285,50 @@ describe("Studio 工作流状态控制器", () => {
     expect(result.current.workflow.currentStageId).toBe("idea-capture");
     expect(result.current.workflow.stages["idea-capture"].status).toBe("in-progress");
     expect(result.current.workflow.stages["topic-generation"].status).toBe("pending");
+  });
+
+  it("重新开始捕捉想法后刷新不会恢复旧进度", () => {
+    const first = renderHook(() => useStudioState());
+    act(() => first.result.current.proposeWritingIntent(writingIntent));
+    act(() => first.result.current.runStageAction());
+    act(() => first.result.current.confirmPendingAction());
+    act(() => first.result.current.selectWorkspace("idea-capture"));
+    act(() => first.result.current.restartIdeaCapture());
+    act(() => first.result.current.confirmPendingAction());
+    first.unmount();
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.workflow.currentStageId).toBe("idea-capture");
+    expect(restored.result.current.project.writingIntent.rawIdea).toBe("");
+  });
+
+  it("首次确认后的未确认草稿会自动保存并恢复", () => {
+    const first = renderHook(() => useStudioState());
+    act(() => first.result.current.proposeWritingIntent(writingIntent));
+    act(() => first.result.current.runStageAction());
+    act(() => first.result.current.confirmPendingAction());
+    act(() => first.result.current.updateProject({ confirmedTopic: "尚未确认的新选题" }));
+    first.unmount();
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.project.confirmedTopic).toBe("尚未确认的新选题");
+    expect(restored.result.current.workflow.stages["topic-generation"].status).toBe("in-progress");
+  });
+
+  it("文章保存状态随合法的当前写作工作流恢复", () => {
+    const first = renderHook(() => useStudioState());
+    act(() => first.result.current.proposeWritingIntent(writingIntent));
+    act(() => first.result.current.runStageAction());
+    act(() => first.result.current.confirmPendingAction());
+    first.unmount();
+    const snapshot = JSON.parse(localStorage.getItem(progressStorageKey)!);
+    snapshot.articleSaved = true;
+    localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.articleSaved).toBe(true);
   });
 });

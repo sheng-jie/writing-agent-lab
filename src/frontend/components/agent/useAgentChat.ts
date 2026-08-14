@@ -1,18 +1,24 @@
 "use client";
 
 import { UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+export type AgentMessage = ReturnType<typeof useAgent>["agent"]["messages"][number];
 
 export interface AgentChatOptions {
   agentId: string;
   onError?: (error: unknown) => void;
+  initialMessages?: AgentMessage[];
+  onMessagesChange?: (messages: AgentMessage[]) => void;
+  onDraftChange?: (hasDraft: boolean) => void;
+  restoreKey?: number;
 }
 
 /**
  * 通用 Agent 对话通信层：封装 useAgent + useCopilotKit，
  * 提供发送、停止、输入框状态等能力，不感知任何具体业务。
  */
-export function useAgentChat({ agentId, onError }: AgentChatOptions) {
+export function useAgentChat({ agentId, onError, initialMessages, onMessagesChange, onDraftChange, restoreKey = 0 }: AgentChatOptions) {
   const { agent } = useAgent({
     agentId,
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
@@ -20,6 +26,22 @@ export function useAgentChat({ agentId, onError }: AgentChatOptions) {
   });
   const { copilotkit } = useCopilotKit();
   const [input, setInput] = useState("");
+  const restoredKeyRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (initialMessages === undefined || restoredKeyRef.current === restoreKey) return;
+    restoredKeyRef.current = restoreKey;
+    agent.setMessages(initialMessages);
+  }, [agent, initialMessages, restoreKey]);
+
+  useEffect(() => {
+    if (initialMessages !== undefined && initialMessages.length > 0 && agent.messages.length === 0) return;
+    onMessagesChange?.(agent.messages);
+  }, [agent.messages, initialMessages, onMessagesChange]);
+
+  useEffect(() => {
+    onDraftChange?.(input.trim().length > 0);
+  }, [input, onDraftChange]);
 
   async function send(text: string) {
     const trimmed = text.trim();
