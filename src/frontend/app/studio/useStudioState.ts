@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import { initialStudioProject, studioSteps } from "./studio.config";
+import { initialStudioProject, studioAgentByStage, studioSteps } from "./studio.config";
 import {
   clearStudioProgress,
   loadStudioProgress,
@@ -407,6 +407,13 @@ export function useStudioState(): StudioController {
   }
 
   function applyStageReset(stageId: StudioStageId) {
+    const resetIndex = studioStageIds.indexOf(stageId);
+    const resetAgentIds = new Set(studioStageIds.slice(resetIndex).map((id) => studioAgentByStage[id]));
+
+    setAgentMessages((current) => Object.fromEntries(
+      Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId)),
+    ));
+    setAgentMessagesRestoreKey((current) => current + 1);
     agentResetRef.current?.();
     setWorkflow((current) => resetWorkflowFromStage(current, stageId));
     setProject((current) => clearProjectFromStage(current, stageId));

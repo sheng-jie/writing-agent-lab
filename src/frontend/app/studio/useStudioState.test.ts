@@ -256,6 +256,21 @@ describe("Studio 工作流状态控制器", () => {
     expect(result.current.project.writingIntent).toBe(acceptedIntent);
   });
 
+  it("重置阶段会清空当前 Agent 的可恢复历史消息", () => {
+    const { result } = renderHook(() => useStudioState());
+    const messages = [{ id: "message-1", role: "user" as const, content: "旧对话" }];
+    act(() => result.current.updateAgentMessages("ideaCaptureAgent", messages));
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    act(() => result.current.confirmPendingAction());
+    act(() => result.current.selectWorkspace("idea-capture"));
+
+    act(() => result.current.resetStage());
+    act(() => result.current.confirmPendingAction());
+
+    expect(result.current.getAgentMessages("ideaCaptureAgent")).toEqual([]);
+  });
+
   it("重新开始捕捉想法会清空会话、写作意图和所有下游产物", () => {
     const { result } = renderHook(() => useStudioState());
     const resetAgent = vi.fn();
