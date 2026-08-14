@@ -48,7 +48,7 @@ tests/backend/
 当前模块：
 
 - `Articles/`：保存、读取、列出文章的用例和 DTO。
-- `WritingWorkflows/Clarification/`：写作工作流中澄清 Agent 的业务定义，包括 Agent id、允许工具、skill 名称和业务 instructions。
+- `Agents/WritingIntent/`：捕捉想法阶段写作意图识别 Agent 的业务定义，包括 Agent id、允许工具、skill 名称和业务 instructions。
 
 规则：
 
@@ -115,7 +115,7 @@ WritingAgent.Infrastructure -> Api
 业务 Agent 定义位于 Application：
 
 ```text
-WritingAgent.Application/WritingWorkflows/Clarification/
+WritingAgent.Application/Agents/WritingIntent/
 ```
 
 Agent 运行时适配位于 Infrastructure：
@@ -159,7 +159,7 @@ GET /agui/agents
 当前默认 Agent：
 
 ```text
-clarification-agent
+idea-capture-agent
 ```
 
 ### Article API

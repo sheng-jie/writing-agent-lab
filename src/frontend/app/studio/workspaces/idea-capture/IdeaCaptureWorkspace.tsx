@@ -16,7 +16,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
   const agentPanelRef = useRef<AgentPanelRef>(null);
   const phase = controller.workflow.stages["idea-capture"].proposal !== null
     ? "card"
-    : hasWritingIntent(controller.project.writingIntent) ? "clarifying" : "initial";
+    : hasWritingIntent(controller.project.writingIntent) ? "identifying" : "initial";
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
       controller.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
       return changedCards;
     },
-    confirmWritingIntent: (writingIntent) => controller.confirmWritingIntent(writingIntent),
+    proposeWritingIntent: (writingIntent) => controller.proposeWritingIntent(writingIntent),
     restart: () => {
       if (controller.restartIdeaCapture()) {
         setUpdatedCards(new Set());
@@ -92,7 +92,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
       <AgentPanel
         ref={agentPanelRef}
-        agentId="clarificationAgent"
+        agentId="ideaCaptureAgent"
         className="studio-agent-panel"
         title="意图识别 Agent"
         description="通过关键追问补齐结构化写作意图的 7 个字段。"

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { z } from "zod";
 
-export const clarificationArgsSchema = z.object({
-  type: z.literal("Clarification"),
+export const writingIntentQuestionArgsSchema = z.object({
+  type: z.literal("WritingIntentQuestions"),
   version: z.literal("2.0"),
   title: z.string().optional(),
   submitLabel: z.string().optional(),
@@ -29,30 +29,30 @@ export const clarificationArgsSchema = z.object({
     .min(1),
 });
 
-export type ClarificationArgs = z.infer<typeof clarificationArgsSchema>;
+export type WritingIntentQuestionArgs = z.infer<typeof writingIntentQuestionArgsSchema>;
 
 /**
  * 提交给 Agent 的答案直接是可读文本：question 是问题原文，answer 是用户选中的
  * 选项文案（多选用“、”拼接）或填写的文本，而不是 questionId/selectedOptionIds 这种
  * 需要回查原始 options 才能读懂的结构。
  */
-export type ClarificationAnswer = {
+export type WritingIntentQuestionAnswer = {
   questionId: string;
   question: string;
   answer: string;
 };
 
-export type ClarificationResponse = {
-  type: "ClarificationResponse";
+export type WritingIntentQuestionResponse = {
+  type: "WritingIntentQuestionsResponse";
   version: "2.0";
-  answers: ClarificationAnswer[];
+  answers: WritingIntentQuestionAnswer[];
 };
 
-function parseSubmittedAnswers(result: string | undefined): Map<string, ClarificationAnswer> | null {
+function parseSubmittedAnswers(result: string | undefined): Map<string, WritingIntentQuestionAnswer> | null {
   if (!result) return null;
 
   try {
-    const parsed = JSON.parse(result) as Partial<ClarificationResponse>;
+    const parsed = JSON.parse(result) as Partial<WritingIntentQuestionResponse>;
     if (!Array.isArray(parsed.answers)) return null;
     return new Map(parsed.answers.map((answer) => [answer.questionId, answer]));
   } catch {
@@ -60,9 +60,9 @@ function parseSubmittedAnswers(result: string | undefined): Map<string, Clarific
   }
 }
 
-export function ClarificationQuestionCard({ args, respond, disabled, result, onAnswered }: {
-  args: ClarificationArgs;
-  respond?: (response: ClarificationResponse) => void | Promise<void>;
+export function WritingIntentQuestionCard({ args, respond, disabled, result, onAnswered }: {
+  args: WritingIntentQuestionArgs;
+  respond?: (response: WritingIntentQuestionResponse) => void | Promise<void>;
   disabled?: boolean;
   /**
    * 工具调用进入 complete 状态后，CopilotKit 会把 respond(...) 传入的内容序列化后
@@ -93,7 +93,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
   async function submit() {
     if (!respond || disabled) return;
 
-    const answers: ClarificationAnswer[] = args.questions.map((question) => {
+    const answers: WritingIntentQuestionAnswer[] = args.questions.map((question) => {
       if (question.kind === "single_choice") {
         const selectedId = singleSelected[question.id];
         const label = (question.options ?? []).find((option) => option.id === selectedId)?.label ?? "";
@@ -127,7 +127,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
 
     setError(null);
     await respond({
-      type: "ClarificationResponse",
+      type: "WritingIntentQuestionsResponse",
       version: "2.0",
       answers,
     });
@@ -140,11 +140,11 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
       <h3>{args.title ?? "我需要再确认几个关键信息"}</h3>
       <p>
         {disabled
-          ? "已提交以下回答，Agent 会基于此继续澄清写作意图。"
-          : "回答后 Agent 会继续澄清并更新写作意图。当前卡片由 CopilotKit human-in-the-loop 工具渲染。"}
+          ? "已提交以下回答，Agent 会基于此继续识别写作意图。"
+          : "回答后 Agent 会继续识别并更新写作意图。当前卡片由 CopilotKit human-in-the-loop 工具渲染。"}
       </p>
 
-      <div className="fdc-clarification-stack">
+      <div className="fdc-question-stack">
         {args.questions.map((question, index) => {
           // 提交后优先用 result（Agent 消息历史里的权威数据）渲染只读摘要，
           // 而不是继续渲染本地 state 驱动、可能因重新渲染而显示为"未选中"的表单控件。
@@ -152,15 +152,15 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
             const answerText = submittedAnswers?.get(question.id)?.answer.trim() || "（未填写）";
 
             return (
-              <section className="fdc-clarification-question" key={question.id}>
+              <section className="fdc-question" key={question.id}>
                 <h4><span>{String(index + 1).padStart(2, "0")}</span>{question.title}</h4>
-                <p className="fdc-clarification-answer">{answerText}</p>
+                <p className="fdc-question-answer">{answerText}</p>
               </section>
             );
           }
 
           return (
-            <section className="fdc-clarification-question" key={question.id}>
+            <section className="fdc-question" key={question.id}>
               <h4><span>{String(index + 1).padStart(2, "0")}</span>{question.title}</h4>
 
               {question.kind === "single_choice" ? (
@@ -197,7 +197,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
 
               {question.kind === "text" ? (
                 <textarea
-                  className="fdc-clarification-textarea"
+                  className="fdc-question-textarea"
                   disabled={disabled}
                   rows={3}
                   value={textAnswers[question.id] ?? ""}
@@ -210,7 +210,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
         })}
       </div>
 
-      {error ? <p className="fdc-clarification-error">{error}</p> : null}
+      {error ? <p className="fdc-question-error">{error}</p> : null}
 
       {!disabled ? (
         <div className="fdc-confirm-actions">
@@ -223,7 +223,7 @@ export function ClarificationQuestionCard({ args, respond, disabled, result, onA
   );
 }
 
-export function ClarificationQuestionPendingCard({ title }: { title?: string }) {
+export function WritingIntentQuestionPendingCard({ title }: { title?: string }) {
   return (
     <div className="fdc-question-card fdc-interaction-card w-full max-w-[620px]">
       <h3>{title ?? "正在准备澄清问题"}</h3>

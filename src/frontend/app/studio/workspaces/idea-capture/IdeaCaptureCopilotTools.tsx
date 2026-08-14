@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { AgentCardShell } from "@/components/agent/AgentCardShell";
 
-import { ClarificationQuestionCard, ClarificationQuestionPendingCard, clarificationArgsSchema, type ClarificationArgs } from "./ClarificationQuestionCard";
+import { WritingIntentQuestionCard, WritingIntentQuestionPendingCard, writingIntentQuestionArgsSchema, type WritingIntentQuestionArgs } from "./WritingIntentQuestionCard";
 import { WritingIntentConfirmCard, WritingIntentConfirmPendingCard, writingIntentConfirmationArgsSchema, type WritingIntentConfirmationArgs } from "./WritingIntentConfirmCard";
 import type { IdeaCaptureState } from "./ideaCapture.types";
 
@@ -55,17 +55,17 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
     [controller],
   );
 
-  useHumanInTheLoop<ClarificationArgs>(
+  useHumanInTheLoop<WritingIntentQuestionArgs>(
     {
-      name: "clarification",
-      description: "Render structured clarification questions and wait for the user's answers before continuing the writing intent flow.",
+      name: "writingIntentQuestions",
+      description: "Render structured writing intent questions and wait for the user's answers before continuing.",
       available: phase !== "card",
-      parameters: clarificationArgsSchema,
+      parameters: writingIntentQuestionArgsSchema,
       render: ({ args, status, respond, result }) => (
-        <AgentCardShell status={status} pending={<ClarificationQuestionPendingCard title={args.title} />}>
+        <AgentCardShell status={status} pending={<WritingIntentQuestionPendingCard title={args.title} />}>
           {/* AgentCardShell 只在非 inProgress 状态渲染 children，此时 CopilotKit 保证 args 是完整类型。 */}
-          <ClarificationQuestionCard
-            args={args as unknown as ClarificationArgs}
+          <WritingIntentQuestionCard
+            args={args as unknown as WritingIntentQuestionArgs}
             respond={respond}
             disabled={status !== "executing"}
             result={status === "complete" ? result : undefined}
@@ -79,8 +79,8 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
 
   useHumanInTheLoop<WritingIntentConfirmationArgs>(
     {
-      name: "confirmWritingIntent",
-      description: "Ask the user to confirm whether the identified writing intent should be saved as the left-side writing intent card, or whether the agent should continue clarifying.",
+      name: "proposeWritingIntent",
+      description: "Show the candidate writing intent for user review. This only generates or updates the candidate and never accepts the stage.",
       available: controller.editable && phase !== "initial",
       parameters: writingIntentConfirmationArgsSchema,
       render: ({ args, status, respond }) => (
@@ -90,8 +90,8 @@ export function IdeaCaptureCopilotTools({ controller }: { controller: IdeaCaptur
             args={args as unknown as WritingIntentConfirmationArgs}
             respond={respond}
             disabled={status !== "executing"}
-            onConfirmAccepted={controller.confirmWritingIntent}
-            onContinueRequested={() => controller.notify("可以继续补充澄清")}
+            onPropose={controller.proposeWritingIntent}
+            onContinueRequested={() => controller.notify("可以继续补充写作意图")}
           />
         </AgentCardShell>
       ),

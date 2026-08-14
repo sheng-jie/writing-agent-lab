@@ -42,7 +42,7 @@ describe("Studio 工作流状态控制器", () => {
   it("生成候选写作意图后保留当前阶段并允许继续修正", () => {
     const { result } = renderHook(() => useStudioState());
 
-    act(() => result.current.confirmWritingIntent(writingIntent));
+    act(() => result.current.proposeWritingIntent(writingIntent));
 
     expect(result.current.workflow.currentStageId).toBe("idea-capture");
     expect(result.current.workflow.stages["idea-capture"]).toMatchObject({
@@ -64,7 +64,7 @@ describe("Studio 工作流状态控制器", () => {
 
   it("Agent 运行时阻止候选阶段产物进入下一步", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.confirmWritingIntent(writingIntent));
+    act(() => result.current.proposeWritingIntent(writingIntent));
     act(() => result.current.setAgentRunning(true));
 
     expect(result.current.stageAction).toMatchObject({
@@ -79,7 +79,7 @@ describe("Studio 工作流状态控制器", () => {
 
   it("下一步只打开摘要弹窗，取消不变，确认后才原子推进", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.confirmWritingIntent(writingIntent));
+    act(() => result.current.proposeWritingIntent(writingIntent));
     const beforeConfirmation = result.current.workflow;
 
     act(() => result.current.runStageAction());
@@ -113,7 +113,7 @@ describe("Studio 工作流状态控制器", () => {
 
   it("接受后锁定写作意图，只有重新开始入口可以修改", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.confirmWritingIntent(writingIntent));
+    act(() => result.current.proposeWritingIntent(writingIntent));
     act(() => result.current.runStageAction());
     act(() => result.current.confirmPendingAction());
     const acceptedWorkflow = result.current.workflow;
@@ -126,5 +126,36 @@ describe("Studio 工作流状态控制器", () => {
     expect(result.current.confirmation).toBeNull();
     expect(result.current.workflow).toBe(acceptedWorkflow);
     expect(result.current.project.writingIntent).toBe(acceptedIntent);
+  });
+
+  it("重新开始捕捉想法会清空会话、写作意图和所有下游产物", () => {
+    const { result } = renderHook(() => useStudioState());
+    const resetAgent = vi.fn();
+
+    act(() => result.current.registerAgentReset(resetAgent));
+    act(() => result.current.proposeWritingIntent(writingIntent));
+    act(() => result.current.runStageAction());
+    act(() => result.current.confirmPendingAction());
+    act(() => result.current.updateProject({ confirmedTopic: "旧选题", outline: ["旧大纲"], draft: "旧初稿" }));
+    act(() => result.current.selectWorkspace("idea-capture"));
+    act(() => result.current.restartIdeaCapture());
+    act(() => result.current.confirmPendingAction());
+
+    expect(resetAgent).toHaveBeenCalledOnce();
+    expect(result.current.project.writingIntent).toEqual({
+      rawIdea: "",
+      topic: "",
+      audience: "",
+      purpose: "",
+      platform: "",
+      coreViewpoint: "",
+      contentBoundary: "",
+    });
+    expect(result.current.project.confirmedTopic).toBe("");
+    expect(result.current.project.outline).toEqual([]);
+    expect(result.current.project.draft).toBe("");
+    expect(result.current.workflow.currentStageId).toBe("idea-capture");
+    expect(result.current.workflow.stages["idea-capture"].status).toBe("in-progress");
+    expect(result.current.workflow.stages["topic-generation"].status).toBe("pending");
   });
 });

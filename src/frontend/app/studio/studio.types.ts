@@ -59,7 +59,7 @@ export type StudioController = {
   updateProject: (patch: Partial<StudioProject>) => void;
   updateArtifact: (stageId: StudioStageId, patch: Record<string, string>) => void;
   updateWritingIntent: (patch: Partial<WritingIntent>) => boolean;
-  confirmWritingIntent: (patch: Partial<WritingIntent>) => void;
+  proposeWritingIntent: (patch: Partial<WritingIntent>) => void;
   setAgentRunning: (running: boolean) => void;
   registerAgentReset: (reset: () => void) => () => void;
   restartIdeaCapture: () => boolean;

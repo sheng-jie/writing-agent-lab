@@ -2,7 +2,7 @@ import type { StudioProject, StudioStep } from "./studio.types";
 import type { StudioStageId } from "./studio.workflow";
 
 export const studioAgentByStage: Record<StudioStageId, string> = {
-  "idea-capture": "clarificationAgent",
+  "idea-capture": "ideaCaptureAgent",
   "topic-generation": "studioTopicAgent",
   "outline-planning": "studioOutlineAgent",
   drafting: "studioDraftingAgent",

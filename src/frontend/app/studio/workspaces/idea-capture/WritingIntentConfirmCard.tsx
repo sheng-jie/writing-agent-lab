@@ -28,17 +28,17 @@ export type WritingIntentConfirmationResponse = {
   action: "confirm" | "continue";
 };
 
-export function WritingIntentConfirmCard({ args, respond, disabled, onConfirmAccepted, onContinueRequested }: {
+export function WritingIntentConfirmCard({ args, respond, disabled, onPropose, onContinueRequested }: {
   args: WritingIntentConfirmationArgs;
   respond?: (response: WritingIntentConfirmationResponse) => void | Promise<void>;
   disabled?: boolean;
-  onConfirmAccepted?: (writingIntent: WritingIntentConfirmationArgs["writingIntent"]) => void;
+  onPropose?: (writingIntent: WritingIntentConfirmationArgs["writingIntent"]) => void;
   onContinueRequested?: () => void;
 }) {
   async function confirm() {
     if (!respond || disabled) return;
 
-    onConfirmAccepted?.(args.writingIntent);
+    onPropose?.(args.writingIntent);
     await respond({
       type: "WritingIntentConfirmationResponse",
       version: "1.0",
@@ -46,7 +46,7 @@ export function WritingIntentConfirmCard({ args, respond, disabled, onConfirmAcc
     });
   }
 
-  async function continueClarifying() {
+  async function continueIdentifying() {
     if (!respond || disabled) return;
 
     onContinueRequested?.();
@@ -76,7 +76,7 @@ export function WritingIntentConfirmCard({ args, respond, disabled, onConfirmAcc
         <button className="fdc-primary-btn" type="button" disabled={disabled || !respond} onClick={() => void confirm()}>
           {disabled ? "已确认" : args.confirmLabel ?? "确认生成卡片"}
         </button>
-        <button className="fdc-ghost-btn" type="button" disabled={disabled || !respond} onClick={() => void continueClarifying()}>
+        <button className="fdc-ghost-btn" type="button" disabled={disabled || !respond} onClick={() => void continueIdentifying()}>
           {args.continueLabel ?? "继续补充一句"}
         </button>
       </div>

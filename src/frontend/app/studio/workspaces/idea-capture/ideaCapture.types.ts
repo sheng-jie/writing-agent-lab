@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
-export type Phase = "initial" | "clarifying" | "card";
+export type Phase = "initial" | "identifying" | "card";
 
 export type WritingIntentDraft = {
   rawIdea: string;
@@ -25,6 +25,6 @@ export type IdeaCaptureState = {
   flashCard: (name: string) => void;
   flashCards: (names: string[]) => void;
   updateWritingIntent: (patch: Partial<WritingIntentDraft>) => string[];
-  confirmWritingIntent: (confirmed: Partial<WritingIntentDraft>) => void;
+  proposeWritingIntent: (candidate: Partial<WritingIntentDraft>) => void;
   restart: () => void;
 };

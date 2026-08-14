@@ -72,7 +72,7 @@ export function useStudioState(): StudioController {
       writingIntent: project.writingIntent,
       constraints: {
         toolPolicy: activeStep.id === "idea-capture"
-          ? "Use updateWritingIntent to maintain exactly these writing intent fields: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary. Ask clarification questions when needed. Once all required fields are clear, call confirmWritingIntent and wait for the user to confirm."
+          ? "Use updateWritingIntent to maintain exactly these writing intent fields: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary. Ask writing intent questions when needed. Once all required fields are clear, call proposeWritingIntent to generate or update the candidate. Never mark the stage accepted or advance the workflow; only the user's confirmed 下一步 action can do that."
           : "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
       },
     }),
@@ -151,7 +151,7 @@ export function useStudioState(): StudioController {
     updateStageDraft("idea-capture", nextIntent);
   }
 
-  function confirmWritingIntent(patch: Partial<WritingIntent>) {
+  function proposeWritingIntent(patch: Partial<WritingIntent>) {
     const nextIntent = {
       ...project.writingIntent,
       ...patch,
@@ -196,16 +196,10 @@ export function useStudioState(): StudioController {
   }
 
   function applyRestartIdeaCapture() {
-    setProject((current) => ({ ...current, writingIntent: initialStudioProject.writingIntent }));
+    agentResetRef.current?.();
+    setProject((current) => clearProjectFromStage(current, "idea-capture"));
     setWorkflow((current) => {
-      const reset = resetWorkflowFromStage(current, "idea-capture");
-      return {
-        ...reset,
-        stages: {
-          ...reset.stages,
-          "idea-capture": { ...reset.stages["idea-capture"], draft: null },
-        },
-      };
+      return resetWorkflowFromStage(current, "idea-capture");
     });
     notify("已重新开始写作意图识别");
   }
@@ -334,7 +328,7 @@ export function useStudioState(): StudioController {
     updateProject,
     updateArtifact,
     updateWritingIntent,
-    confirmWritingIntent,
+    proposeWritingIntent,
     setAgentRunning,
     registerAgentReset,
     restartIdeaCapture,

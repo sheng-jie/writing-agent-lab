@@ -49,5 +49,5 @@ fi
 if [ -z "$missing" ]; then
   printf '{"ready":true,"missing":[],"recommendation":"可以整理写作意图。"}\n'
 else
-  printf '{"ready":false,"missing":[%s],"recommendation":"需要先通过 clarification 工具补齐缺失信息。"}\n' "$missing"
+  printf '{"ready":false,"missing":[%s],"recommendation":"需要先通过 writingIntentQuestions 工具补齐缺失信息。"}\n' "$missing"
 fi

@@ -18,12 +18,12 @@ IChatClient chatClient = openAIClient
     .GetChatClient("deepseek-chat")
     .AsIChatClient();
 
-AIAgent clarificationAgent = chatClient.AsAIAgent(
-    name: "ClarificationAgent",
+AIAgent ideaCaptureAgent = chatClient.AsAIAgent(
+    name: "IdeaCaptureAgent",
     instructions: """
-        你是写作工作流中的 Clarification Agent。
+        你是写作工作流中负责捕捉想法的写作意图识别 Agent。
 
-        你的唯一职责：把用户模糊、零散或过宽的写作想法澄清成一份可执行的写作意图。
+        你的唯一职责：把用户模糊、零散或过宽的写作想法识别并维护成一份可执行的写作意图。
 
         你不生成候选选题，不做正式研究，不写正文。
 
@@ -50,7 +50,7 @@ AIAgent clarificationAgent = chatClient.AsAIAgent(
         - 内容边界：写……；不写……
     """);
 
-Console.WriteLine("ClarificationAgent 已启动。输入 exit 退出。\n");
+Console.WriteLine("IdeaCaptureAgent 已启动。输入 exit 退出。\n");
 
 // 在循环外维护历史消息，每一轮都把用户输入和 Agent 回复追加进去。
 var history = new List<ChatMessage>();
@@ -76,7 +76,7 @@ while (true)
         history.Add(new ChatMessage(ChatRole.User, input));
 
         // 把完整历史交给 Agent，Agent 就能基于前文继续回答。
-        AgentResponse response = await clarificationAgent.RunAsync(history);
+        AgentResponse response = await ideaCaptureAgent.RunAsync(history);
 
         // 不只保存 response.Text，而是保存完整消息。
         // 后续如果出现工具调用、工具结果，也能保留在历史里。

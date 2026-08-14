@@ -130,8 +130,8 @@ function IntentCards({ writingIntent, updatedCards }: { writingIntent: WritingIn
     <section className="fdc-intent-state" aria-label="结构化写作意图卡片">
       <div className="fdc-intent-sheet">
         <div className="fdc-intent-sheet-intro">
-          <span className="fdc-intent-sheet-kicker">Writing brief</span>
-          <p>从想法到表达方向，已整理成一份可继续修改的写作简报。</p>
+          <span className="fdc-intent-sheet-kicker">WRITING INTENT</span>
+          <p>从想法到表达方向，已整理成一份可继续修改的写作意图。</p>
         </div>
         {intentCardConfigs.map((cardConfig) => (
           <IntentCard
