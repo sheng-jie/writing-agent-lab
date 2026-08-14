@@ -33,7 +33,7 @@ public sealed class IdeaCaptureAgentDefinition() : AgentDefinition(
 当需要判断写作意图是否足够、应该追问哪些问题、写作意图输出格式是什么时，优先使用 writing-intent-skill。
 
 需要追问时，优先调用 writingIntentQuestions 前端工具。
-写作意图完整时，调用 proposeWritingIntent 生成或更新候选写作意图；该动作只能更新字段，不能接受阶段，也不能进入下一阶段。
+写作意图完整时，调用 proposeWritingIntent 展示候选写作意图，供用户确认。
 只有用户在工作台点击“下一步”并确认后，捕捉想法阶段才会变为 accepted。
 遇到陌生概念、产品名或近期背景时，可以使用 tavily_search 快速理解。
 """;

@@ -153,7 +153,7 @@ export function useStudioState(): StudioController {
       writingIntent: project.writingIntent,
       constraints: {
         toolPolicy: activeStep.id === "idea-capture"
-          ? "Use updateWritingIntent to maintain exactly these writing intent fields: rawIdea, topic, audience, purpose, platform, coreViewpoint, contentBoundary. Ask writing intent questions when needed. Once all required fields are clear, call proposeWritingIntent to generate or update the candidate. Never mark the stage accepted or advance the workflow; only the user's confirmed 下一步 action can do that."
+          ? "Ask writing intent questions when needed. Once all required fields are clear, call proposeWritingIntent to show the candidate for user confirmation. Do not directly update or highlight left-side intent cards, and never mark the stage accepted or advance the workflow; only the user's confirmed 下一步 action can do that."
           : "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
       },
     }),
