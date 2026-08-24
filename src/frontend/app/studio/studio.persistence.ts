@@ -1,35 +1,10 @@
 import { z } from "zod";
 
 import { studioStageIds, type WritingWorkflowSnapshot } from "./studio.workflow";
-import type { StudioProject } from "./studio.types";
 
 export const studioProgressStorageKey = "flowdraft-studio-progress";
-const studioProgressVersion = 1 as const;
+const studioProgressVersion = 2 as const;
 
-const stageArtifactValueSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(stageArtifactValueSchema),
-    z.record(z.string(), stageArtifactValueSchema),
-  ]),
-);
-const stageArtifactSchema = z.record(z.string(), stageArtifactValueSchema);
-const stageRecordSchema = z.object({
-  status: z.enum(["pending", "in-progress", "accepted"]),
-  draft: stageArtifactSchema.nullable(),
-  proposal: stageArtifactSchema.nullable(),
-  accepted: stageArtifactSchema.nullable(),
-  revision: z.number().int().nonnegative(),
-  updatedAt: z.string().nullable(),
-  upstreamRevision: z.number().int().nonnegative().nullable(),
-});
-const workflowSchema = z.object({
-  currentStageId: z.enum(studioStageIds),
-  stages: z.object(Object.fromEntries(studioStageIds.map((id) => [id, stageRecordSchema])) as Record<(typeof studioStageIds)[number], typeof stageRecordSchema>),
-});
 const writingIntentSchema = z.object({
   rawIdea: z.string(),
   topic: z.string(),
@@ -39,23 +14,59 @@ const writingIntentSchema = z.object({
   coreViewpoint: z.string(),
   contentBoundary: z.string(),
 });
-const projectSchema = z.object({
+const topicCandidateSchema = z.object({
+  id: z.string(),
   title: z.string(),
-  writingIntent: writingIntentSchema,
-  confirmedTopic: z.string(),
-  outline: z.array(z.string()),
-  draft: z.string(),
-  polishedDraft: z.string(),
-  imageBrief: z.string(),
-  artifacts: z.partialRecord(z.enum(studioStageIds), z.record(z.string(), z.string())),
+  audience: z.string(),
+  coreViewpoint: z.string(),
+  angle: z.string(),
+  excludedContent: z.string(),
+});
+const artifactSchemas = {
+  "idea-capture": writingIntentSchema,
+  "topic-generation": z.object({ candidates: z.array(topicCandidateSchema), selectedCandidateId: z.string() }),
+  "outline-planning": z.object({
+    throughline: z.string(),
+    sections: z.array(z.object({ title: z.string(), task: z.string(), materialGap: z.string() })),
+  }),
+  drafting: z.object({ content: z.string() }),
+  polishing: z.object({ content: z.string() }),
+  "image-planning": z.object({
+    title: z.string(),
+    content: z.string(),
+    illustrations: z.array(z.object({ placement: z.string(), purpose: z.string(), prompt: z.string(), url: z.string() })),
+  }),
+} as const;
+
+function stageRecordSchema(artifactSchema: z.ZodType) {
+  return z.object({
+    status: z.enum(["pending", "in-progress", "accepted"]),
+    artifact: artifactSchema.nullable(),
+    generatedAt: z.string().nullable(),
+    revision: z.number().int().nonnegative(),
+    updatedAt: z.string().nullable(),
+    upstreamRevision: z.number().int().nonnegative().nullable(),
+  });
+}
+
+const workflowSchema = z.object({
+  currentStageId: z.enum(studioStageIds),
+  status: z.enum(["active", "completed"]),
+  articleId: z.string().nullable(),
+  stages: z.object({
+    "idea-capture": stageRecordSchema(artifactSchemas["idea-capture"]),
+    "topic-generation": stageRecordSchema(artifactSchemas["topic-generation"]),
+    "outline-planning": stageRecordSchema(artifactSchemas["outline-planning"]),
+    drafting: stageRecordSchema(artifactSchemas.drafting),
+    polishing: stageRecordSchema(artifactSchemas.polishing),
+    "image-planning": stageRecordSchema(artifactSchemas["image-planning"]),
+  }),
 });
 const snapshotSchema = z.object({
   version: z.literal(studioProgressVersion),
   savedAt: z.string(),
   workflow: workflowSchema,
-  project: projectSchema,
   activeWorkspaceId: z.enum(studioStageIds),
-  articleSaved: z.boolean(),
   agentMessages: z.record(z.string(), z.array(z.unknown())),
 });
 
@@ -63,9 +74,7 @@ export type StudioProgressSnapshot = {
   version: typeof studioProgressVersion;
   savedAt: string;
   workflow: WritingWorkflowSnapshot;
-  project: StudioProject;
   activeWorkspaceId: (typeof studioStageIds)[number];
-  articleSaved: boolean;
   agentMessages: Record<string, unknown[]>;
 };
 
@@ -75,12 +84,8 @@ export function loadStudioProgress(): StudioProgressSnapshot | null {
   const serialized = window.localStorage.getItem(studioProgressStorageKey);
   if (serialized === null) return null;
 
-  try {
-    const progress = parseStudioProgress(serialized);
-    if (progress) return progress;
-  } catch {
-    // Invalid snapshots are discarded as a whole below.
-  }
+  const progress = parseStudioProgress(serialized);
+  if (progress) return progress;
 
   window.localStorage.removeItem(studioProgressStorageKey);
   return null;

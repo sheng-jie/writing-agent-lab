@@ -22,6 +22,7 @@ export function StudioActionbar({ controller }: { controller: StudioController }
   const canAdvance = controller.stageAction.kind === "advance";
   const canOpenNextStage = stage.status === "accepted" && !isFinalStage;
   const canSaveArticle = isFinalStage && stage.status === "accepted";
+  const workflowCompleted = controller.workflow.status === "completed";
 
   return (
     <>
@@ -40,17 +41,23 @@ export function StudioActionbar({ controller }: { controller: StudioController }
           <button type="button" disabled={isFirstStep} onClick={controller.goBack}>
             上一步
           </button>
-          <button type="button" disabled={stage.status !== "accepted"} onClick={controller.resetStage}>
+          <button type="button" disabled={workflowCompleted || stage.status !== "accepted"} onClick={controller.resetStage}>
             重置
           </button>
-          <button
-            className="studio-primary"
-            type="button"
-            disabled={canSaveArticle ? false : !(canAdvance || canOpenNextStage)}
-            onClick={canSaveArticle ? controller.saveArticle : controller.runStageAction}
-          >
-            {canSaveArticle ? (controller.articleSaved ? "文章已保存" : "保存文章") : "下一步"}
-          </button>
+          {workflowCompleted ? (
+            <button className="studio-primary" type="button" onClick={controller.startNewWorkflow}>
+              开始新的写作工作流
+            </button>
+          ) : (
+            <button
+              className="studio-primary"
+              type="button"
+              disabled={canSaveArticle ? false : !(canAdvance || canOpenNextStage)}
+              onClick={canSaveArticle ? () => void controller.saveArticle() : controller.runStageAction}
+            >
+              {canSaveArticle ? "保存文章" : "下一步"}
+            </button>
+          )}
         </div>
       </footer>
 

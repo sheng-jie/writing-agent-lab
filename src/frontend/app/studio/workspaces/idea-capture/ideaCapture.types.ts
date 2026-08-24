@@ -1,29 +1,17 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import type { WritingIntentArtifact } from "../../studio.workflow";
 
 export type Phase = "initial" | "identifying" | "card";
 
-export type WritingIntentDraft = {
-  rawIdea: string;
-  topic: string;
-  audience: string;
-  purpose: string;
-  platform: string;
-  coreViewpoint: string;
-  contentBoundary: string;
-};
+export type WritingIntentDraft = WritingIntentArtifact;
 
 export type IdeaCaptureState = {
   phase: Phase;
   editable: boolean;
   writingIntent: WritingIntentDraft;
-  setWritingIntent: Dispatch<SetStateAction<WritingIntentDraft>>;
-  toast: { text: string; visible: boolean };
   updatedCards: Set<string>;
   notify: (text: string) => void;
-  flashCard: (name: string) => void;
-  flashCards: (names: string[]) => void;
   updateWritingIntent: (patch: Partial<WritingIntentDraft>) => string[];
   proposeWritingIntent: (candidate: Partial<WritingIntentDraft>) => void;
   restart: () => void;

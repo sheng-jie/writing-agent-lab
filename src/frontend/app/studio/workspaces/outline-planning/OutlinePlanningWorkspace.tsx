@@ -47,7 +47,7 @@ export function OutlinePlanningWorkspace({ controller }: { controller: StudioCon
         onDraftChange={controller.setAgentDraftActive}
         restoreKey={controller.agentMessagesRestoreKey}
       >
-        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateWritingOutline" />
+        <StudioStepCopilotTools stageId="outline-planning" agentId={agentId} controller={controller} />
       </AgentPanel>
     </>
   );

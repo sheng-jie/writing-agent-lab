@@ -15,9 +15,10 @@ import type { StudioController } from "../../studio.types";
 export function IdeaCaptureWorkspace({ controller }: { controller: StudioController }) {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
   const agentPanelRef = useRef<AgentPanelRef>(null);
-  const phase = controller.workflow.stages["idea-capture"].proposal !== null
+  const writingIntent = controller.getStageArtifact("idea-capture") ?? emptyWritingIntent;
+  const phase = controller.workflow.stages["idea-capture"].generatedAt !== null
     ? "card"
-    : hasWritingIntent(controller.project.writingIntent) ? "identifying" : "initial";
+    : hasWritingIntent(writingIntent) ? "identifying" : "initial";
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
@@ -46,18 +47,11 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
   const ideaCaptureController: IdeaCaptureState = {
     phase,
     editable: controller.workflow.stages["idea-capture"].status !== "accepted",
-    writingIntent: controller.project.writingIntent,
-    setWritingIntent: (updater) => {
-      const next = typeof updater === "function" ? updater(controller.project.writingIntent) : updater;
-      controller.updateWritingIntent(next);
-    },
-    toast: controller.toast,
+    writingIntent,
     updatedCards,
     notify: controller.notify,
-    flashCard,
-    flashCards: (names) => names.forEach(flashCard),
     updateWritingIntent: (patch) => {
-      if (!controller.updateWritingIntent(patch)) return [];
+      if (!controller.updateStageArtifact("idea-capture", patch)) return [];
       const changedCards = Object.keys(patch).flatMap((key) => {
         const cardByField: Record<string, string> = {
           rawIdea: "raw",
@@ -74,7 +68,10 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
       controller.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
       return changedCards;
     },
-    proposeWritingIntent: (writingIntent) => controller.proposeWritingIntent(writingIntent),
+    proposeWritingIntent: (candidate) => controller.generateStageArtifact("idea-capture", {
+      ...writingIntent,
+      ...candidate,
+    }),
     restart: () => {
       if (controller.restartIdeaCapture()) {
         setUpdatedCards(new Set());
@@ -125,6 +122,16 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
     </>
   );
 }
+
+const emptyWritingIntent: WritingIntentDraft = {
+  rawIdea: "",
+  topic: "",
+  audience: "",
+  purpose: "",
+  platform: "",
+  coreViewpoint: "",
+  contentBoundary: "",
+};
 
 function hasWritingIntent(intent: WritingIntentDraft) {
   return Boolean(

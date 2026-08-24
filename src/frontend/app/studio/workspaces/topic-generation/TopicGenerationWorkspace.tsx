@@ -3,7 +3,6 @@
 import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useEffect, useRef } from "react";
 
-import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 import { studioAgentByStage } from "../../studio.config";
 import type { StudioController } from "../../studio.types";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
@@ -11,12 +10,64 @@ import { StudioStepCopilotTools } from "../StudioStepAgent";
 export function TopicGenerationWorkspace({ controller }: { controller: StudioController }) {
   const agentId = studioAgentByStage["topic-generation"];
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
+  const artifact = controller.getStageArtifact("topic-generation");
+  const readOnly = controller.workflow.status === "completed"
+    || controller.workflow.stages["topic-generation"].status === "accepted";
 
   useEffect(() => controller.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
 
   return (
     <>
-      <StepWorkspacePlaceholder />
+      <article className="studio-stage">
+        <section className="studio-panel">
+          <header>
+            <div>
+              <h2>候选选题</h2>
+              <p>{artifact?.candidates.length ? "选择一个选题，确定本阶段的写作方向。" : "让 Agent 先生成完整候选列表。"}</p>
+            </div>
+          </header>
+
+          <div className="studio-panel-body">
+            {artifact?.candidates.length ? (
+              <fieldset className="grid gap-3" disabled={readOnly}>
+                <legend className="sr-only">选择确定选题</legend>
+                {artifact.candidates.map((candidate) => {
+                  const selected = candidate.id === artifact.selectedCandidateId;
+                  return (
+                    <label
+                      key={candidate.id}
+                      className={`grid cursor-pointer gap-3 border p-4 transition-colors ${selected ? "border-[var(--teal)] bg-[var(--teal-soft)]" : "border-[var(--rule)] bg-white hover:border-[var(--muted)]"} ${readOnly ? "cursor-default" : ""}`}
+                    >
+                      <span className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="selected-topic"
+                          value={candidate.id}
+                          checked={selected}
+                          onChange={() => controller.updateStageArtifact("topic-generation", { selectedCandidateId: candidate.id })}
+                          className="mt-1 size-4 accent-[var(--teal)]"
+                        />
+                        <span className="grid gap-1">
+                          <strong className="text-base text-[var(--ink)]">{candidate.title}</strong>
+                          <span className="text-sm leading-6 text-[var(--muted)]">写给 {candidate.audience} · {candidate.angle}</span>
+                        </span>
+                      </span>
+                      <span className="grid gap-2 pl-7 text-sm leading-6 text-[var(--muted)]">
+                        <span><b className="text-[var(--ink)]">核心判断：</b>{candidate.coreViewpoint}</span>
+                        <span><b className="text-[var(--ink)]">不展开：</b>{candidate.excludedContent}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+            ) : (
+              <div className="grid min-h-72 place-items-center border border-dashed border-[var(--rule)] px-6 text-center text-sm leading-6 text-[var(--muted)]">
+                候选选题生成后会显示在这里。
+              </div>
+            )}
+          </div>
+        </section>
+      </article>
 
       <AgentPanel
         ref={agentPanelRef}
@@ -47,7 +98,7 @@ export function TopicGenerationWorkspace({ controller }: { controller: StudioCon
         onDraftChange={controller.setAgentDraftActive}
         restoreKey={controller.agentMessagesRestoreKey}
       >
-        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateTopicCandidates" />
+        <StudioStepCopilotTools stageId="topic-generation" agentId={agentId} controller={controller} />
       </AgentPanel>
     </>
   );

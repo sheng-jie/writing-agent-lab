@@ -11,17 +11,61 @@ export type StudioStageId = (typeof studioStageIds)[number];
 
 export type StageStatus = "pending" | "in-progress" | "accepted";
 
-export type StageArtifactValue = string | number | boolean | null | StageArtifact | StageArtifactValue[];
+export type WritingIntentArtifact = {
+  rawIdea: string;
+  topic: string;
+  audience: string;
+  purpose: string;
+  platform: string;
+  coreViewpoint: string;
+  contentBoundary: string;
+};
 
-export interface StageArtifact {
-  [key: string]: StageArtifactValue;
-}
+export type TopicCandidate = {
+  id: string;
+  title: string;
+  audience: string;
+  coreViewpoint: string;
+  angle: string;
+  excludedContent: string;
+};
 
-export type StageRecord = {
+export type TopicGenerationArtifact = {
+  candidates: TopicCandidate[];
+  selectedCandidateId: string;
+};
+
+export type OutlineSection = {
+  title: string;
+  task: string;
+  materialGap: string;
+};
+
+export type OutlineArtifact = {
+  throughline: string;
+  sections: OutlineSection[];
+};
+
+export type DraftArtifact = { content: string };
+export type PolishedDraftArtifact = { content: string };
+export type Illustration = { placement: string; purpose: string; prompt: string; url: string };
+export type ImagePlanningArtifact = { title: string; content: string; illustrations: Illustration[] };
+
+export type StageArtifactMap = {
+  "idea-capture": WritingIntentArtifact;
+  "topic-generation": TopicGenerationArtifact;
+  "outline-planning": OutlineArtifact;
+  drafting: DraftArtifact;
+  polishing: PolishedDraftArtifact;
+  "image-planning": ImagePlanningArtifact;
+};
+
+export type StageArtifact = StageArtifactMap[StudioStageId];
+
+export type StageRecord<TArtifact extends StageArtifact = StageArtifact> = {
   status: StageStatus;
-  draft: StageArtifact | null;
-  proposal: StageArtifact | null;
-  accepted: StageArtifact | null;
+  artifact: TArtifact | null;
+  generatedAt: string | null;
   revision: number;
   updatedAt: string | null;
   upstreamRevision: number | null;
@@ -29,7 +73,9 @@ export type StageRecord = {
 
 export type WritingWorkflowSnapshot = {
   currentStageId: StudioStageId;
-  stages: Record<StudioStageId, StageRecord>;
+  status: "active" | "completed";
+  articleId: string | null;
+  stages: { [K in StudioStageId]: StageRecord<StageArtifactMap[K]> };
 };
 
 export type StudioWorkspaceState = {
@@ -44,25 +90,25 @@ export type StageAction =
 function createStageRecord(status: StageStatus): StageRecord {
   return {
     status,
-    draft: null,
-    proposal: null,
-    accepted: null,
+    artifact: null,
+    generatedAt: null,
     revision: 0,
     updatedAt: null,
     upstreamRevision: null,
   };
 }
 
-export function createInitialWorkflow(initialDrafts: Partial<Record<StudioStageId, StageArtifact>> = {}): WritingWorkflowSnapshot {
+export function createInitialWorkflow(): WritingWorkflowSnapshot {
   return {
     currentStageId: "idea-capture",
+    status: "active",
+    articleId: null,
     stages: Object.fromEntries(
       studioStageIds.map((stageId) => {
         const stage = createStageRecord(stageId === "idea-capture" ? "in-progress" : "pending");
-        stage.draft = initialDrafts[stageId] ?? null;
         return [stageId, stage];
       }),
-    ) as Record<StudioStageId, StageRecord>,
+    ) as WritingWorkflowSnapshot["stages"],
   };
 }
 
@@ -89,6 +135,7 @@ export function canSelectWorkspace(workflow: WritingWorkflowSnapshot, stageId: S
 }
 
 export function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
+  if (workflow.status === "completed") return workflow;
   const resetIndex = studioStageIds.indexOf(stageId);
 
   return {
@@ -100,18 +147,18 @@ export function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageI
 
         return [id, createStageRecord(id === stageId ? "in-progress" : "pending")];
       }),
-    ) as Record<StudioStageId, StageRecord>,
+    ) as WritingWorkflowSnapshot["stages"],
   };
 }
 
-export function updateStageArtifactDraft(
+export function updateStageArtifactDraft<K extends StudioStageId>(
   workflow: WritingWorkflowSnapshot,
-  stageId: StudioStageId,
-  patch: StageArtifact,
+  stageId: K,
+  patch: Partial<StageArtifactMap[K]>,
   updatedAt: string,
 ): WritingWorkflowSnapshot {
   const stage = workflow.stages[stageId];
-  if (stage.status === "accepted") return workflow;
+  if (workflow.status === "completed" || stage.status === "accepted") return workflow;
 
   return {
     ...workflow,
@@ -119,37 +166,39 @@ export function updateStageArtifactDraft(
       ...workflow.stages,
       [stageId]: {
         ...stage,
-        draft: { ...stage.draft, ...patch },
+        artifact: { ...stage.artifact, ...patch },
         updatedAt,
       },
-    },
+    } as WritingWorkflowSnapshot["stages"],
   };
 }
 
-export function proposeStageArtifact(
+export function proposeStageArtifact<K extends StudioStageId>(
   workflow: WritingWorkflowSnapshot,
-  stageId: StudioStageId,
-  artifact: StageArtifact,
+  stageId: K,
+  artifact: StageArtifactMap[K],
   updatedAt: string,
 ): WritingWorkflowSnapshot {
-  const updated = updateStageArtifactDraft(workflow, stageId, artifact, updatedAt);
-  const stage = updated.stages[stageId];
+  const stage = workflow.stages[stageId];
+  if (workflow.status === "completed" || stage.status !== "in-progress") return workflow;
 
   return {
-    ...updated,
+    ...workflow,
     stages: {
-      ...updated.stages,
+      ...workflow.stages,
       [stageId]: {
         ...stage,
-        proposal: stage.draft,
+        artifact,
+        generatedAt: updatedAt,
+        updatedAt,
       },
-    },
+    } as WritingWorkflowSnapshot["stages"],
   };
 }
 
 export function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
   const stage = workflow.stages[stageId];
-  if (stage.status === "accepted" || stage.proposal === null) return workflow;
+  if (stage.status === "accepted" || stage.generatedAt === null || !isCompleteStageArtifact(stageId, stage.artifact)) return workflow;
   const nextStageId = getNextStageId(stageId);
 
   return {
@@ -160,7 +209,6 @@ export function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: 
       [stageId]: {
         ...stage,
         status: "accepted",
-        accepted: stage.draft,
         revision: stage.revision + 1,
       },
       ...(nextStageId && workflow.stages[nextStageId].status === "pending"
@@ -178,15 +226,15 @@ export function resolveStageAcceptance(
   return decision === "confirm" ? acceptStageArtifact(workflow, stageId) : workflow;
 }
 
-export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false): StageAction {
+export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false, stageId?: StudioStageId): StageAction {
   switch (stage.status) {
     case "pending":
       return { kind: "blocked", label: "下一步", hint: "请先完成前一阶段。" };
     case "in-progress":
-      if (agentRunning && hasStageContent(stage, candidateRequired)) {
+      if (agentRunning && hasStageContent(stage, candidateRequired, stageId)) {
         return { kind: "blocked", label: "下一步", hint: "Agent 处理完成后才能进入下一步。" };
       }
-      return hasStageContent(stage, candidateRequired)
+      return hasStageContent(stage, candidateRequired, stageId)
         ? { kind: "advance", label: "下一步", hint: "完成当前内容后，即可确认并继续。" }
         : { kind: "blocked", label: "下一步", hint: "请先完成当前阶段内容。" };
     case "accepted":
@@ -194,17 +242,40 @@ export function getStageAction(stage: StageRecord, agentRunning = false, candida
   }
 }
 
-function hasStageContent(stage: StageRecord, candidateRequired: boolean) {
-  const artifact = candidateRequired ? stage.proposal : stage.draft;
-  return stage.updatedAt !== null && Object.values(artifact ?? {}).some(hasArtifactContent);
+function hasStageContent(stage: StageRecord, candidateRequired: boolean, stageId?: StudioStageId) {
+  if (candidateRequired && stage.generatedAt === null) return false;
+  return stage.updatedAt !== null && stage.artifact !== null && (!stageId || isCompleteStageArtifact(stageId, stage.artifact));
 }
 
-function hasArtifactContent(value: StageArtifactValue): boolean {
-  if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value === "number" || typeof value === "boolean") return true;
-  if (value === null) return false;
-  if (Array.isArray(value)) return value.some(hasArtifactContent);
-  return Object.values(value).some(hasArtifactContent);
+function isCompleteStageArtifact(stageId: StudioStageId, artifact: StageArtifact | null): boolean {
+  if (artifact === null) return false;
+  switch (stageId) {
+    case "idea-capture": {
+      const intent = artifact as WritingIntentArtifact;
+      return [intent.rawIdea, intent.topic, intent.audience, intent.purpose, intent.platform, intent.coreViewpoint, intent.contentBoundary]
+        .every((value) => value.trim().length > 0);
+    }
+    case "topic-generation": {
+      const topics = artifact as TopicGenerationArtifact;
+      return topics.candidates.length > 0 && topics.candidates.some((candidate) => candidate.id === topics.selectedCandidateId);
+    }
+    case "outline-planning": {
+      const outline = artifact as OutlineArtifact;
+      return outline.throughline.trim().length > 0 && outline.sections.length > 0;
+    }
+    case "drafting":
+    case "polishing":
+      return (artifact as DraftArtifact).content.trim().length > 0;
+    case "image-planning": {
+      const illustrated = artifact as ImagePlanningArtifact;
+      return illustrated.title.trim().length > 0 && illustrated.content.trim().length > 0;
+    }
+  }
+}
+
+export function completeWorkflow(workflow: WritingWorkflowSnapshot, articleId: string): WritingWorkflowSnapshot {
+  if (workflow.status === "completed" || workflow.stages["image-planning"].status !== "accepted") return workflow;
+  return { ...workflow, status: "completed", articleId };
 }
 
 export function getStageStateLabel(status: StageStatus) {

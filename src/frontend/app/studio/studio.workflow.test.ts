@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  createInitialWorkflow,
   canSelectWorkspace,
+  completeWorkflow,
+  createInitialWorkflow,
   getNextStageId,
   getStageAction,
   getWorkflowProgress,
@@ -12,10 +13,31 @@ import {
   resetWorkflowFromStage,
   studioStageIds,
   updateStageArtifactDraft,
+  type WritingIntentArtifact,
 } from "./studio.workflow";
 
-describe("Studio 写作工作流快照", () => {
-  it("只定义六个正式阶段", () => {
+const writingIntent: WritingIntentArtifact = {
+  rawIdea: "想写 Agent 产品工程",
+  topic: "Agent 产品工程",
+  audience: "独立开发者",
+  purpose: "帮助读者形成开发顺序",
+  platform: "微信公众号",
+  coreViewpoint: "先闭环再扩展",
+  contentBoundary: "不讨论模型训练",
+};
+
+function acceptIdeaCapture() {
+  return resolveStageAcceptance(
+    proposeStageArtifact(createInitialWorkflow(), "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z"),
+    "idea-capture",
+    "confirm",
+  );
+}
+
+describe("当前写作工作流", () => {
+  it("从六个空阶段开始，只有捕捉想法处于进行中", () => {
+    const workflow = createInitialWorkflow();
+
     expect(studioStageIds).toEqual([
       "idea-capture",
       "topic-generation",
@@ -24,225 +46,127 @@ describe("Studio 写作工作流快照", () => {
       "polishing",
       "image-planning",
     ]);
+    expect(workflow.status).toBe("active");
+    expect(workflow.stages["idea-capture"]).toMatchObject({ status: "in-progress", artifact: null });
+    expect(workflow.stages["topic-generation"]).toMatchObject({ status: "pending", artifact: null });
   });
 
-  it("根据已确认阶段计算进度，而不是当前浏览位置", () => {
-    const workflow = createInitialWorkflow();
+  it("完整生成写入唯一 artifact 并开放下一步", () => {
+    const generated = proposeStageArtifact(
+      createInitialWorkflow(),
+      "idea-capture",
+      writingIntent,
+      "2026-08-08T00:00:00.000Z",
+    );
 
-    workflow.stages["idea-capture"].status = "accepted";
-    workflow.stages["topic-generation"].status = "in-progress";
-
-    expect(getWorkflowProgress(workflow)).toEqual({ acceptedCount: 1, percentage: 17 });
-  });
-
-  it("只有候选阶段产物可以开放下一步", () => {
-    const workflow = createInitialWorkflow({ "idea-capture": { writingIntent: "写一篇文章" } });
-    workflow.stages["idea-capture"].updatedAt = "2026-08-02T00:00:00.000Z";
-
-    expect(getStageAction(workflow.stages["idea-capture"], false, true)).toMatchObject({
-      kind: "blocked",
-      label: "下一步",
-    });
-    workflow.stages["idea-capture"].proposal = { writingIntent: "写一篇文章" };
-    expect(getStageAction(workflow.stages["idea-capture"], false, true)).toMatchObject({
-      kind: "advance",
-      label: "下一步",
-    });
-    expect(getStageAction(workflow.stages["idea-capture"], true, true)).toMatchObject({
-      kind: "blocked",
-      label: "下一步",
-      hint: "Agent 处理完成后才能进入下一步。",
-    });
-  });
-
-  it("生成候选写作意图后仍停留在捕捉想法阶段", () => {
-    const workflow = createInitialWorkflow();
-    const proposed = proposeStageArtifact(workflow, "idea-capture", {
-      topic: "Agent 产品工程",
-      audience: "独立开发者",
-    }, "2026-08-08T00:00:00.000Z");
-
-    expect(proposed.currentStageId).toBe("idea-capture");
-    expect(proposed.stages["idea-capture"]).toMatchObject({
+    expect(generated.stages["idea-capture"]).toEqual({
       status: "in-progress",
-      draft: { topic: "Agent 产品工程", audience: "独立开发者" },
-      proposal: { topic: "Agent 产品工程", audience: "独立开发者" },
-      accepted: null,
+      artifact: writingIntent,
+      generatedAt: "2026-08-08T00:00:00.000Z",
       revision: 0,
+      updatedAt: "2026-08-08T00:00:00.000Z",
+      upstreamRevision: null,
     });
-    expect(proposed.stages["topic-generation"].status).toBe("pending");
-    expect(getWorkflowProgress(proposed)).toEqual({ acceptedCount: 0, percentage: 0 });
+    expect(getStageAction(generated.stages["idea-capture"], false, true).kind).toBe("advance");
+    expect(getStageAction(generated.stages["idea-capture"], true, true).kind).toBe("blocked");
   });
 
-  it("后续修正按字段合并并保留候选阶段产物", () => {
-    const proposed = proposeStageArtifact(createInitialWorkflow(), "idea-capture", {
-      topic: "旧主题",
-      audience: "独立开发者",
-    }, "2026-08-08T00:00:00.000Z");
-    const updated = updateStageArtifactDraft(proposed, "idea-capture", {
-      topic: "新主题",
-    }, "2026-08-08T00:01:00.000Z");
+  it("局部修正更新同一个 artifact 并保留生成事实", () => {
+    const generated = proposeStageArtifact(createInitialWorkflow(), "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z");
+    const updated = updateStageArtifactDraft(generated, "idea-capture", { topic: "可演进的 Agent 产品工程" }, "2026-08-08T00:01:00.000Z");
 
-    expect(updated.stages["idea-capture"].draft).toEqual({
-      topic: "新主题",
-      audience: "独立开发者",
-    });
-    expect(updated.stages["idea-capture"].proposal).toEqual({
-      topic: "旧主题",
-      audience: "独立开发者",
-    });
-
-    const regenerated = proposeStageArtifact(updated, "idea-capture", {
-      coreViewpoint: "先闭环再扩展",
-    }, "2026-08-08T00:02:00.000Z");
-    expect(regenerated.stages["idea-capture"].proposal).toEqual({
-      topic: "新主题",
-      audience: "独立开发者",
-      coreViewpoint: "先闭环再扩展",
-    });
+    expect(updated.stages["idea-capture"].artifact).toEqual({ ...writingIntent, topic: "可演进的 Agent 产品工程" });
+    expect(updated.stages["idea-capture"].generatedAt).toBe("2026-08-08T00:00:00.000Z");
   });
 
-  it("确认时固定当前草稿并原子进入选题生成", () => {
-    const proposed = proposeStageArtifact(createInitialWorkflow(), "idea-capture", {
-      topic: "旧主题",
-      audience: "独立开发者",
-    }, "2026-08-08T00:00:00.000Z");
-    const updated = updateStageArtifactDraft(proposed, "idea-capture", { topic: "新主题" }, "2026-08-08T00:01:00.000Z");
-    const accepted = resolveStageAcceptance(updated, "idea-capture", "confirm");
+  it("未经过完整生成动作的局部草稿不能接受", () => {
+    const updated = updateStageArtifactDraft(createInitialWorkflow(), "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z");
+
+    expect(getStageAction(updated.stages["idea-capture"], false, true).kind).toBe("blocked");
+    expect(resolveStageAcceptance(updated, "idea-capture", "confirm")).toBe(updated);
+  });
+
+  it("接受当前 artifact 并原子进入下一阶段", () => {
+    const generated = proposeStageArtifact(createInitialWorkflow(), "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z");
+    const accepted = resolveStageAcceptance(generated, "idea-capture", "confirm");
 
     expect(accepted.currentStageId).toBe("topic-generation");
-    expect(accepted.stages["idea-capture"]).toMatchObject({
-      status: "accepted",
-      accepted: { topic: "新主题", audience: "独立开发者" },
-      revision: 1,
-    });
+    expect(accepted.stages["idea-capture"]).toMatchObject({ status: "accepted", artifact: writingIntent, revision: 1 });
     expect(accepted.stages["topic-generation"].status).toBe("in-progress");
+    expect(getWorkflowProgress(accepted)).toEqual({ acceptedCount: 1, percentage: 17 });
   });
 
-  it("取消接受时保持工作流状态与产物不变", () => {
-    const proposed = proposeStageArtifact(createInitialWorkflow(), "idea-capture", {
-      topic: "Agent 产品工程",
-      audience: "独立开发者",
-    }, "2026-08-08T00:00:00.000Z");
-
-    expect(resolveStageAcceptance(proposed, "idea-capture", "cancel")).toBe(proposed);
+  it("取消接受不改变工作流", () => {
+    const generated = proposeStageArtifact(createInitialWorkflow(), "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z");
+    expect(resolveStageAcceptance(generated, "idea-capture", "cancel")).toBe(generated);
   });
 
-  it("已接受阶段拒绝继续写入草稿或重复接受", () => {
-    const proposed = proposeStageArtifact(createInitialWorkflow(), "idea-capture", {
-      topic: "Agent 产品工程",
-    }, "2026-08-08T00:00:00.000Z");
-    const accepted = resolveStageAcceptance(proposed, "idea-capture", "confirm");
+  it("重置清空当前及下游 artifact 并保留上游", () => {
+    const ideaAccepted = acceptIdeaCapture();
+    const topicsGenerated = proposeStageArtifact(ideaAccepted, "topic-generation", {
+      candidates: [{ id: "topic-1", title: "Agent 产品工程", audience: "独立开发者", coreViewpoint: "先闭环", angle: "开发顺序", excludedContent: "模型训练" }],
+      selectedCandidateId: "topic-1",
+    }, "2026-08-08T00:01:00.000Z");
+    const topicsAccepted = resolveStageAcceptance(topicsGenerated, "topic-generation", "confirm");
+    const reset = resetWorkflowFromStage(topicsAccepted, "topic-generation");
 
-    expect(updateStageArtifactDraft(accepted, "idea-capture", { topic: "不应生效" }, "2026-08-08T00:01:00.000Z")).toBe(accepted);
-    expect(resolveStageAcceptance(accepted, "idea-capture", "confirm")).toBe(accepted);
-    expect(accepted.stages["idea-capture"].revision).toBe(1);
+    expect(reset.stages["idea-capture"].status).toBe("accepted");
+    expect(reset.stages["idea-capture"].artifact).toEqual(writingIntent);
+    expect(reset.stages["topic-generation"]).toMatchObject({ status: "in-progress", artifact: null, generatedAt: null });
+    expect(reset.stages["outline-planning"]).toMatchObject({ status: "pending", artifact: null, generatedAt: null });
   });
 
-  it("为 pending 和 accepted 阶段给出相应动作", () => {
-    const workflow = createInitialWorkflow();
-    workflow.stages["idea-capture"] = {
-      ...workflow.stages["idea-capture"],
-      draft: { writingIntent: "写一篇文章" },
-      updatedAt: "2026-08-02T00:00:00.000Z",
-    };
-    expect(getStageAction(workflow.stages["topic-generation"])).toMatchObject({
-      kind: "blocked",
-      label: "下一步",
-    });
+  it("选题列表生成后必须形成确定选题才能接受", () => {
+    const ideaAccepted = acceptIdeaCapture();
+    const generated = proposeStageArtifact(ideaAccepted, "topic-generation", {
+      candidates: [{ id: "topic-1", title: "Agent 产品工程", audience: "独立开发者", coreViewpoint: "先闭环", angle: "开发顺序", excludedContent: "模型训练" }],
+      selectedCandidateId: "",
+    }, "2026-08-08T00:01:00.000Z");
 
-    workflow.stages["idea-capture"].status = "accepted";
-    expect(getStageAction(workflow.stages["idea-capture"])).toMatchObject({
-      kind: "completed",
-      label: "下一步",
-    });
+    expect(getStageAction(generated.stages["topic-generation"], false, true, "topic-generation").kind).toBe("blocked");
+    expect(resolveStageAcceptance(generated, "topic-generation", "confirm")).toBe(generated);
+
+    const selected = updateStageArtifactDraft(generated, "topic-generation", { selectedCandidateId: "topic-1" }, "2026-08-08T00:02:00.000Z");
+    expect(getStageAction(selected.stages["topic-generation"], false, true, "topic-generation").kind).toBe("advance");
   });
 
-  it("只允许进入当前阶段或已确认阶段", () => {
-    const workflow = createInitialWorkflow();
-    workflow.stages["idea-capture"].status = "accepted";
-    workflow.stages["topic-generation"].status = "in-progress";
-    workflow.currentStageId = "topic-generation";
-
+  it("只有当前阶段和已接受阶段可以浏览", () => {
+    const workflow = acceptIdeaCapture();
     expect(canSelectWorkspace(workflow, "idea-capture")).toBe(true);
     expect(canSelectWorkspace(workflow, "topic-generation")).toBe(true);
     expect(canSelectWorkspace(workflow, "outline-planning")).toBe(false);
   });
 
-  it("重置会清空当前及下游阶段，并回到当前阶段编辑", () => {
-    const workflow = createInitialWorkflow();
-    workflow.stages["idea-capture"] = {
-      ...workflow.stages["idea-capture"],
-      status: "accepted",
-      draft: { writingIntent: "写一篇文章" },
-      accepted: { writingIntent: "写一篇文章" },
-    };
-    workflow.stages["topic-generation"] = {
-      ...workflow.stages["topic-generation"],
-      status: "accepted",
-      draft: { confirmedTopic: "确定选题" },
-      accepted: { confirmedTopic: "确定选题" },
-    };
-    workflow.stages["outline-planning"] = {
-      ...workflow.stages["outline-planning"],
-      status: "in-progress",
-      draft: { outline: ["章节一"] },
-    };
+  it("文章形成后工作流结束且拒绝重置", () => {
+    let workflow = createInitialWorkflow();
+    workflow = proposeStageArtifact(workflow, "idea-capture", writingIntent, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "idea-capture", "confirm");
+    workflow = proposeStageArtifact(workflow, "topic-generation", { candidates: [{ id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" }], selectedCandidateId: "topic-1" }, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "topic-generation", "confirm");
+    workflow = proposeStageArtifact(workflow, "outline-planning", { throughline: "主线", sections: [{ title: "开场", task: "提出问题", materialGap: "" }] }, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "outline-planning", "confirm");
+    workflow = proposeStageArtifact(workflow, "drafting", { content: "初稿" }, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "drafting", "confirm");
+    workflow = proposeStageArtifact(workflow, "polishing", { content: "润色稿" }, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "polishing", "confirm");
+    workflow = proposeStageArtifact(workflow, "image-planning", { title: "定稿标题", content: "定稿正文", illustrations: [] }, "2026-08-08T00:00:00.000Z");
+    workflow = resolveStageAcceptance(workflow, "image-planning", "confirm");
 
-    const reset = resetWorkflowFromStage(workflow, "topic-generation");
-
-    expect(reset.currentStageId).toBe("topic-generation");
-    expect(reset.stages["idea-capture"].status).toBe("accepted");
-    expect(reset.stages["topic-generation"]).toMatchObject({ status: "in-progress", draft: null, accepted: null });
-    expect(reset.stages["outline-planning"]).toMatchObject({ status: "pending", draft: null, accepted: null });
+    const completed = completeWorkflow(workflow, "article-1");
+    expect(completed).toMatchObject({ status: "completed", articleId: "article-1" });
+    expect(resetWorkflowFromStage(completed, "idea-capture")).toBe(completed);
   });
 
-  it("只在确认阶段后解析下一个正式阶段", () => {
+  it("浏览位置不改变当前阶段", () => {
+    const workflow = createInitialWorkflow();
+    const workspace = openWorkspace({ activeWorkspaceId: "idea-capture" }, "image-planning");
+    expect(workspace.activeWorkspaceId).toBe("image-planning");
+    expect(workflow.currentStageId).toBe("idea-capture");
+  });
+
+  it("解析正式阶段顺序", () => {
     expect(getNextStageId("idea-capture")).toBe("topic-generation");
     expect(getNextStageId("polishing")).toBe("image-planning");
     expect(getNextStageId("image-planning")).toBeNull();
-  });
-
-  it("浏览其他工作区不会改变真实当前阶段或流程进度", () => {
-    const workflow = createInitialWorkflow();
-    const workspace = openWorkspace({ activeWorkspaceId: "idea-capture" }, "image-planning");
-
-    expect(workspace.activeWorkspaceId).toBe("image-planning");
-    expect(workflow.currentStageId).toBe("idea-capture");
-    expect(getWorkflowProgress(workflow)).toEqual({ acceptedCount: 0, percentage: 0 });
-  });
-
-  it("上游写作意图变更会重置当前和所有下游阶段的状态和产物", () => {
-    const workflow = createInitialWorkflow({
-      "topic-generation": { confirmedTopic: "旧选题" },
-      "outline-planning": { outline: ["旧大纲"] },
-    });
-    workflow.currentStageId = "outline-planning";
-    workflow.stages["idea-capture"].status = "accepted";
-    workflow.stages["topic-generation"].status = "accepted";
-    workflow.stages["topic-generation"].accepted = { confirmedTopic: "旧选题" };
-    workflow.stages["outline-planning"].status = "in-progress";
-
-    const reset = resetWorkflowFromStage(workflow, "idea-capture");
-
-    expect(reset.currentStageId).toBe("idea-capture");
-    expect(reset.stages["idea-capture"]).toMatchObject({
-      status: "in-progress",
-      draft: null,
-      accepted: null,
-      revision: 0,
-    });
-    expect(reset.stages["topic-generation"]).toMatchObject({
-      status: "pending",
-      draft: null,
-      accepted: null,
-      revision: 0,
-    });
-    expect(reset.stages["outline-planning"]).toMatchObject({
-      status: "pending",
-      draft: null,
-      accepted: null,
-      revision: 0,
-    });
   });
 });

@@ -46,7 +46,7 @@ export function DraftingWorkspace({ controller }: { controller: StudioController
         onDraftChange={controller.setAgentDraftActive}
         restoreKey={controller.agentMessagesRestoreKey}
       >
-        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateArticleDraft" />
+        <StudioStepCopilotTools stageId="drafting" agentId={agentId} controller={controller} />
       </AgentPanel>
     </>
   );

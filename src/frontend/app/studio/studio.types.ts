@@ -1,16 +1,6 @@
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import type { StageAction, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
-
-export type WritingIntent = {
-  rawIdea: string;
-  topic: string;
-  audience: string;
-  purpose: string;
-  platform: string;
-  coreViewpoint: string;
-  contentBoundary: string;
-};
+import type { StageAction, StageArtifactMap, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
 
 export type StudioStep = {
   id: StudioStageId;
@@ -20,17 +10,6 @@ export type StudioStep = {
   hint: string;
   missing: string;
   wordTarget: string;
-};
-
-export type StudioProject = {
-  title: string;
-  writingIntent: WritingIntent;
-  confirmedTopic: string;
-  outline: string[];
-  draft: string;
-  polishedDraft: string;
-  imageBrief: string;
-  artifacts: Partial<Record<StudioStageId, Record<string, string>>>;
 };
 
 export type StudioUiState = {
@@ -50,7 +29,6 @@ export type StudioController = {
   workflow: WritingWorkflowSnapshot;
   stageAction: StageAction;
   ui: StudioUiState;
-  project: StudioProject;
   articleSaved: boolean;
   agentRunning: boolean;
   saveWarning: string | null;
@@ -61,10 +39,9 @@ export type StudioController = {
   confirmation: StudioConfirmation | null;
   selectWorkspace: (stageId: StudioStageId) => void;
   toggleRail: () => void;
-  updateProject: (patch: Partial<StudioProject>) => void;
-  updateArtifact: (stageId: StudioStageId, patch: Record<string, string>) => void;
-  updateWritingIntent: (patch: Partial<WritingIntent>) => boolean;
-  proposeWritingIntent: (patch: Partial<WritingIntent>) => void;
+  getStageArtifact: <K extends StudioStageId>(stageId: K) => StageArtifactMap[K] | null;
+  updateStageArtifact: <K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) => boolean;
+  generateStageArtifact: <K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K]) => boolean;
   setAgentRunning: (running: boolean) => void;
   setAgentDraftActive: (active: boolean) => void;
   registerAgentReset: (reset: () => void) => () => void;
@@ -75,7 +52,8 @@ export type StudioController = {
   goBack: () => void;
   runStageAction: () => void;
   resetStage: () => void;
-  saveArticle: () => void;
+  saveArticle: () => Promise<void>;
+  startNewWorkflow: () => void;
   copyStage: () => Promise<void>;
   notify: (message: string) => void;
   confirmPendingAction: () => void;

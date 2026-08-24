@@ -46,7 +46,7 @@ export function PolishingWorkspace({ controller }: { controller: StudioControlle
         onDraftChange={controller.setAgentDraftActive}
         restoreKey={controller.agentMessagesRestoreKey}
       >
-        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="polishDraft" />
+        <StudioStepCopilotTools stageId="polishing" agentId={agentId} controller={controller} />
       </AgentPanel>
     </>
   );

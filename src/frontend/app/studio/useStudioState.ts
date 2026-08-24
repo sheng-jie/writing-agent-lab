@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import { initialStudioProject, studioAgentByStage, studioSteps } from "./studio.config";
+import { studioAgentByStage, studioSteps } from "./studio.config";
 import {
   clearStudioProgress,
   loadStudioProgress,
@@ -15,6 +15,7 @@ import {
 } from "./studio.persistence";
 import {
   canSelectWorkspace,
+  completeWorkflow,
   createInitialWorkflow,
   getNextStageId,
   getStageAction,
@@ -23,11 +24,11 @@ import {
   resolveStageAcceptance,
   resetWorkflowFromStage,
   studioStageIds,
-  type StageArtifact,
-  type StudioStageId,
   updateStageArtifactDraft,
+  type StageArtifactMap,
+  type StudioStageId,
 } from "./studio.workflow";
-import type { StudioConfirmation, StudioController, StudioProject, StudioUiState, WritingIntent } from "./studio.types";
+import type { StudioConfirmation, StudioController, StudioUiState } from "./studio.types";
 
 const railStorageKey = "flowdraft-studio-rail";
 const initialUiState: StudioUiState = {
@@ -37,18 +38,8 @@ const initialUiState: StudioUiState = {
 };
 
 export function useStudioState(): StudioController {
-  const [workflow, setWorkflow] = useState(() =>
-    createInitialWorkflow({
-      "topic-generation": { confirmedTopic: initialStudioProject.confirmedTopic },
-      "outline-planning": { outline: initialStudioProject.outline },
-      drafting: { draft: initialStudioProject.draft },
-      polishing: { polishedDraft: initialStudioProject.polishedDraft },
-      "image-planning": { imageBrief: initialStudioProject.imageBrief },
-    }),
-  );
+  const [workflow, setWorkflow] = useState(createInitialWorkflow);
   const [ui, setUi] = useState(initialUiState);
-  const [project, setProject] = useState<StudioProject>(initialStudioProject);
-  const [articleSaved, setArticleSaved] = useState(false);
   const [agentRunning, setAgentRunning] = useState(false);
   const [confirmation, setConfirmation] = useState<StudioConfirmation | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
@@ -61,27 +52,18 @@ export function useStudioState(): StudioController {
   const agentResetRef = useRef<(() => void) | null>(null);
   const pendingConfirmationRef = useRef<(() => boolean | void) | null>(null);
   const skipNextSaveRef = useRef(false);
-  const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
   const externallyBusyRef = useRef(false);
+  const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
   externallyBusyRef.current = agentRunning || agentDraftActive;
   const stageAction = progressHydrated
-    ? getStageAction(
-        workflow.stages[ui.activeWorkspaceId],
-        agentRunning,
-        ui.activeWorkspaceId === "idea-capture",
-      )
+    ? getStageAction(workflow.stages[ui.activeWorkspaceId], agentRunning, true, ui.activeWorkspaceId)
     : { kind: "blocked" as const, label: "下一步" as const, hint: "正在恢复上次进度。" };
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const hadStoredProgress = localStorage.getItem(studioProgressStorageKey) !== null;
       const progress = loadStudioProgress();
-      if (progress) {
-        setWorkflow(progress.workflow);
-        setProject(progress.project);
-        setArticleSaved(progress.articleSaved);
-        setAgentMessages(progress.agentMessages as Record<string, AgentMessage[]>);
-      }
+      if (progress) applyProgress(progress);
       setUi((current) => ({
         ...current,
         activeWorkspaceId: progress?.activeWorkspaceId ?? current.activeWorkspaceId,
@@ -105,12 +87,10 @@ export function useStudioState(): StudioController {
       if (event.key !== studioProgressStorageKey || event.newValue === null) return;
       const progress = parseStudioProgress(event.newValue);
       if (!progress) return;
-
       if (externallyBusyRef.current) {
         setExternalProgress(progress);
         return;
       }
-
       applyProgress(progress);
     }
 
@@ -127,21 +107,14 @@ export function useStudioState(): StudioController {
 
     const frame = window.requestAnimationFrame(() => {
       try {
-        saveStudioProgress({
-          workflow,
-          project,
-          activeWorkspaceId: ui.activeWorkspaceId,
-          articleSaved,
-          agentMessages,
-        });
+        saveStudioProgress({ workflow, activeWorkspaceId: ui.activeWorkspaceId, agentMessages });
         setSaveWarning(null);
       } catch {
         setSaveWarning("当前修改尚未保存");
       }
     });
-
     return () => window.cancelAnimationFrame(frame);
-  }, [agentMessages, articleSaved, progressHydrated, project, ui.activeWorkspaceId, workflow]);
+  }, [agentMessages, progressHydrated, ui.activeWorkspaceId, workflow]);
 
   function notify(text: string) {
     setUi((current) => ({ ...current, toast: { text, visible: true } }));
@@ -154,8 +127,6 @@ export function useStudioState(): StudioController {
   function applyProgress(progress: StudioProgressSnapshot) {
     skipNextSaveRef.current = true;
     setWorkflow(progress.workflow);
-    setProject(progress.project);
-    setArticleSaved(progress.articleSaved);
     setAgentMessages(progress.agentMessages as Record<string, AgentMessage[]>);
     setAgentMessagesRestoreKey((current) => current + 1);
     setUi((current) => ({ ...current, activeWorkspaceId: progress.activeWorkspaceId }));
@@ -175,65 +146,24 @@ export function useStudioState(): StudioController {
     });
   }
 
-  function updateProject(patch: Partial<StudioProject>) {
-    const stagePatch = getActiveStageDraftPatch(ui.activeWorkspaceId, patch);
-    if (stagePatch && workflow.stages[ui.activeWorkspaceId].status === "accepted") {
+  function getStageArtifact<K extends StudioStageId>(stageId: K): StageArtifactMap[K] | null {
+    return workflow.stages[stageId].artifact;
+  }
+
+  function updateStageArtifact<K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) {
+    if (workflow.status === "completed" || workflow.stages[stageId].status === "accepted") {
       notify("当前阶段已确认，请先重置后再修改");
-      return;
-    }
-
-    setProject((current) => ({ ...current, ...patch }));
-    if (stagePatch) updateStageDraft(ui.activeWorkspaceId, stagePatch);
-  }
-
-  function updateArtifact(stageId: StudioStageId, patch: Record<string, string>) {
-    if (workflow.stages[stageId].status === "accepted") {
-      notify("当前阶段已确认，请先重置后再修改");
-      return;
-    }
-
-    setProject((current) => ({
-      ...current,
-      artifacts: {
-        ...current.artifacts,
-        [stageId]: { ...current.artifacts[stageId], ...patch },
-      },
-    }));
-    updateStageDraft(stageId, patch);
-  }
-
-  function updateStageDraft(stageId: StudioStageId, patch: StageArtifact) {
-    setWorkflow((current) => updateStageArtifactDraft(current, stageId, patch, new Date().toISOString()));
-  }
-
-  function updateWritingIntent(patch: Partial<WritingIntent>) {
-    const currentStage = workflow.stages["idea-capture"];
-    if (currentStage.status === "accepted") {
-      notify("写作意图已确认，请重新开始后再修改");
       return false;
     }
-
-    applyWritingIntentUpdate(patch);
+    setWorkflow((current) => updateStageArtifactDraft(current, stageId, patch, new Date().toISOString()));
     return true;
   }
 
-  function applyWritingIntentUpdate(patch: Partial<WritingIntent>) {
-    const nextIntent = {
-      ...project.writingIntent,
-      ...patch,
-    };
-    setProject((current) => ({ ...current, writingIntent: nextIntent }));
-    updateStageDraft("idea-capture", nextIntent);
-  }
-
-  function proposeWritingIntent(patch: Partial<WritingIntent>) {
-    const nextIntent = {
-      ...project.writingIntent,
-      ...patch,
-    };
-    setProject((current) => ({ ...current, writingIntent: nextIntent }));
-    setWorkflow((current) => proposeStageArtifact(current, "idea-capture", nextIntent, new Date().toISOString()));
-    notify("结构化写作意图已生成，可以继续修正");
+  function generateStageArtifact<K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K]) {
+    if (workflow.status === "completed" || workflow.stages[stageId].status !== "in-progress") return false;
+    setWorkflow((current) => proposeStageArtifact(current, stageId, artifact, new Date().toISOString()));
+    notify("候选阶段产物已生成，可以继续修正");
+    return true;
   }
 
   function registerAgentReset(reset: () => void) {
@@ -270,9 +200,14 @@ export function useStudioState(): StudioController {
   }
 
   function restartIdeaCapture() {
-    const hasDownstreamArtifacts = Object.values(workflow.stages).some((stage, index) => index > 0 && (stage.draft || stage.accepted));
+    if (workflow.status === "completed") return false;
+    const hasProgress = studioStageIds.some((stageId) => workflow.stages[stageId].artifact !== null);
     if (workflow.stages["idea-capture"].status === "accepted") {
-      requestConfirmation("重新开始写作意图识别", hasDownstreamArtifacts ? "重新开始会清空选题、大纲、初稿、润色稿和配图稿。" : "当前写作意图识别结果将被清空。", applyRestartIdeaCapture);
+      requestConfirmation(
+        "重新开始写作意图识别",
+        hasProgress ? "重新开始会清空当前写作工作流的全部阶段产物。" : "当前写作意图识别结果将被清空。",
+        applyRestartIdeaCapture,
+      );
       return false;
     }
     applyRestartIdeaCapture();
@@ -284,10 +219,8 @@ export function useStudioState(): StudioController {
     setAgentMessages({});
     setAgentMessagesRestoreKey((current) => current + 1);
     agentResetRef.current?.();
-    setProject((current) => clearProjectFromStage(current, "idea-capture"));
-    setWorkflow((current) => {
-      return resetWorkflowFromStage(current, "idea-capture");
-    });
+    setWorkflow(createInitialWorkflow());
+    setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
     notify("已重新开始写作意图识别");
   }
 
@@ -306,114 +239,110 @@ export function useStudioState(): StudioController {
 
   function runStageAction() {
     const stageId = ui.activeWorkspaceId;
-    const action = getStageAction(workflow.stages[stageId], agentRunning, stageId === "idea-capture");
-
+    const action = getStageAction(workflow.stages[stageId], agentRunning, true, stageId);
     if (action.kind === "completed") {
       const nextStageId = getNextStageId(stageId);
       if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
       return;
     }
-
     if (action.kind !== "advance") {
-      notify("请先补齐当前阶段内容");
+      notify("请先生成完整的候选阶段产物");
       return;
     }
-
     if (agentRunning) {
       notify("Agent 处理完成后才能进入下一步");
       return;
     }
 
-    if (stageId === "idea-capture") {
-      const intent = project.writingIntent;
-      requestConfirmation(
-        "确认写作意图并进入选题生成",
-        `确认后，捕捉想法阶段将锁定并进入选题生成。写作主题：${intent.topic || "未填写"}；目标读者：${intent.audience || "未填写"}；核心观点：${intent.coreViewpoint || "未填写"}。`,
-        () => {
-          const acceptedWorkflow = resolveStageAcceptance(workflow, stageId, "confirm");
-          try {
-            saveStudioProgress({
-              workflow: acceptedWorkflow,
-              project,
-              activeWorkspaceId: "topic-generation",
-              articleSaved,
-              agentMessages,
-            });
-            setSaveWarning(null);
-          } catch {
-            setSaveWarning("进度保存失败，尚未进入下一阶段");
-            return false;
-          }
-          setWorkflow(acceptedWorkflow);
-          setUi((current) => ({ ...current, activeWorkspaceId: "topic-generation" }));
-          notify("写作意图已确认，已进入选题生成");
-          return true;
-        },
-      );
-      return;
-    }
+    const description = stageId === "idea-capture"
+      ? describeWritingIntent(workflow.stages["idea-capture"].artifact)
+      : `确认后，${activeStep.title}阶段将锁定并进入下一阶段。`;
+    requestConfirmation(`确认${activeStep.title}并进入下一阶段`, description, () => acceptCurrentStage(stageId));
+  }
 
-    setWorkflow((current) => {
-      return resolveStageAcceptance(current, stageId, "confirm");
-    });
+  function acceptCurrentStage(stageId: StudioStageId) {
+    const acceptedWorkflow = resolveStageAcceptance(workflow, stageId, "confirm");
+    if (acceptedWorkflow === workflow) return false;
     const nextStageId = getNextStageId(stageId);
+    try {
+      saveStudioProgress({
+        workflow: acceptedWorkflow,
+        activeWorkspaceId: nextStageId ?? stageId,
+        agentMessages,
+      });
+      setSaveWarning(null);
+    } catch {
+      setSaveWarning("进度保存失败，尚未进入下一阶段");
+      return false;
+    }
+    setWorkflow(acceptedWorkflow);
     if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
     notify(nextStageId ? "当前阶段已确认，已进入下一阶段" : "文章配图已确认，可以保存文章");
+    return true;
   }
 
   function resetStage() {
     const stageId = ui.activeWorkspaceId;
-    const stage = workflow.stages[stageId];
-
-    if (stage.status !== "accepted") {
+    if (workflow.status === "completed" || workflow.stages[stageId].status !== "accepted") {
       notify("仅已完成阶段可以重置");
       return;
     }
-
     const stageIndex = studioStageIds.indexOf(stageId);
-    const hasDownstreamArtifacts = studioStageIds.slice(stageIndex + 1).some((id) => {
-      const downstream = workflow.stages[id];
-      return downstream.draft !== null || downstream.proposal !== null || downstream.accepted !== null;
-    });
-
+    const hasDownstreamArtifacts = studioStageIds.slice(stageIndex + 1).some((id) => workflow.stages[id].artifact !== null);
     if (hasDownstreamArtifacts) {
       requestConfirmation("重置当前阶段", "重置会清空当前及后续流程的全部产物。", () => applyStageReset(stageId));
       return;
     }
-
     applyStageReset(stageId);
   }
 
   function applyStageReset(stageId: StudioStageId) {
     const resetIndex = studioStageIds.indexOf(stageId);
     const resetAgentIds = new Set(studioStageIds.slice(resetIndex).map((id) => studioAgentByStage[id]));
-
-    setAgentMessages((current) => Object.fromEntries(
-      Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId)),
-    ));
+    setAgentMessages((current) => Object.fromEntries(Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId))));
     setAgentMessagesRestoreKey((current) => current + 1);
     agentResetRef.current?.();
     setWorkflow((current) => resetWorkflowFromStage(current, stageId));
-    setProject((current) => clearProjectFromStage(current, stageId));
-    setArticleSaved(false);
-    selectWorkspace(stageId);
+    setUi((current) => ({ ...current, activeWorkspaceId: stageId }));
     notify("当前及后续流程产物已清空");
   }
 
-  function saveArticle() {
-    const finalStage = workflow.stages["image-planning"];
-    if (finalStage.status !== "accepted") {
+  async function saveArticle() {
+    const imagePlanning = workflow.stages["image-planning"];
+    if (workflow.status === "completed" || imagePlanning.status !== "accepted" || imagePlanning.artifact === null) {
       notify("请先完成文章配图");
       return;
     }
 
-    setArticleSaved(true);
-    notify("文章已保存到本次会话中");
+    try {
+      const response = await fetch("/api/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: imagePlanning.artifact.title, content: imagePlanning.artifact.content }),
+      });
+      if (!response.ok) throw new Error("Article save failed");
+      const article = await response.json() as { id: string };
+      setWorkflow((current) => completeWorkflow(current, article.id));
+      notify("文章已保存");
+    } catch {
+      setSaveWarning("文章保存失败，请重试");
+    }
+  }
+
+  function startNewWorkflow() {
+    if (workflow.status !== "completed") return;
+    clearStudioProgress();
+    setWorkflow(createInitialWorkflow());
+    setAgentMessages({});
+    setAgentMessagesRestoreKey((current) => current + 1);
+    setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
+    notify("已开始新的写作工作流");
   }
 
   async function copyStage() {
+    const artifact = workflow.stages[ui.activeWorkspaceId].artifact;
     try {
-      await navigator.clipboard.writeText(`《${project.title}》\n当前工作区：${activeStep.title}\n阶段状态：${workflow.stages[ui.activeWorkspaceId].status}`);
+      await navigator.clipboard.writeText(`${activeStep.title}\n${JSON.stringify(artifact, null, 2)}`);
       notify("阶段内容已复制");
     } catch {
       notify("复制失败，请手动复制阶段内容");
@@ -426,8 +355,7 @@ export function useStudioState(): StudioController {
     workflow,
     stageAction,
     ui,
-    project,
-    articleSaved,
+    articleSaved: workflow.status === "completed",
     agentRunning,
     saveWarning,
     externalProgressAvailable: externalProgress !== null,
@@ -437,10 +365,9 @@ export function useStudioState(): StudioController {
     confirmation,
     selectWorkspace,
     toggleRail,
-    updateProject,
-    updateArtifact,
-    updateWritingIntent,
-    proposeWritingIntent,
+    getStageArtifact,
+    updateStageArtifact,
+    generateStageArtifact,
     setAgentRunning,
     setAgentDraftActive,
     registerAgentReset,
@@ -452,6 +379,7 @@ export function useStudioState(): StudioController {
     runStageAction,
     resetStage,
     saveArticle,
+    startNewWorkflow,
     copyStage,
     notify,
     confirmPendingAction,
@@ -459,44 +387,7 @@ export function useStudioState(): StudioController {
   };
 }
 
-function clearProjectFromStage(project: StudioProject, stageId: StudioStageId): StudioProject {
-  const resetIndex = studioStageIds.indexOf(stageId);
-  const fieldsByStage: Record<StudioStageId, (keyof StudioProject)[]> = {
-    "idea-capture": ["writingIntent"],
-    "topic-generation": ["confirmedTopic"],
-    "outline-planning": ["outline"],
-    drafting: ["draft"],
-    polishing: ["polishedDraft"],
-    "image-planning": ["imageBrief"],
-  };
-  const nextProject: StudioProject = { ...project, artifacts: { ...project.artifacts } };
-
-  studioStageIds.slice(resetIndex).forEach((id) => {
-    fieldsByStage[id].forEach((field) => {
-      const value = project[field];
-      if (typeof value === "string") nextProject[field] = "" as never;
-      if (Array.isArray(value)) nextProject[field] = [] as never;
-      if (field === "writingIntent") nextProject.writingIntent = initialStudioProject.writingIntent;
-    });
-    delete nextProject.artifacts[id];
-  });
-
-  return nextProject;
-}
-
-function getActiveStageDraftPatch(stageId: StudioStageId, patch: Partial<StudioProject>): StageArtifact | null {
-  switch (stageId) {
-    case "idea-capture":
-      return patch.writingIntent === undefined ? null : patch.writingIntent;
-    case "topic-generation":
-      return patch.confirmedTopic === undefined ? null : { confirmedTopic: patch.confirmedTopic };
-    case "outline-planning":
-      return patch.outline === undefined ? null : { outline: patch.outline };
-    case "drafting":
-      return patch.draft === undefined ? null : { draft: patch.draft };
-    case "polishing":
-      return patch.polishedDraft === undefined ? null : { polishedDraft: patch.polishedDraft };
-    case "image-planning":
-      return patch.imageBrief === undefined ? null : { imageBrief: patch.imageBrief };
-  }
+function describeWritingIntent(intent: StageArtifactMap["idea-capture"] | null) {
+  if (!intent) return "请先生成结构化写作意图。";
+  return `确认后，捕捉想法阶段将锁定并进入选题生成。写作主题：${intent.topic}；目标读者：${intent.audience}；核心观点：${intent.coreViewpoint}。`;
 }

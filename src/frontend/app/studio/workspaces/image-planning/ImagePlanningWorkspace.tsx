@@ -47,7 +47,7 @@ export function ImagePlanningWorkspace({ controller }: { controller: StudioContr
         onDraftChange={controller.setAgentDraftActive}
         restoreKey={controller.agentMessagesRestoreKey}
       >
-        <StudioStepCopilotTools agentId={agentId} controller={controller} toolName="updateIllustrationBrief" />
+        <StudioStepCopilotTools stageId="image-planning" agentId={agentId} controller={controller} />
       </AgentPanel>
     </>
   );
