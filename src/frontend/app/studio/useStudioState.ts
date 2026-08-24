@@ -1,7 +1,6 @@
 "use client";
 
-import { useAgentContext } from "@copilotkit/react-core/v2";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
@@ -143,27 +142,6 @@ export function useStudioState(): StudioController {
 
     return () => window.cancelAnimationFrame(frame);
   }, [agentMessages, articleSaved, progressHydrated, project, ui.activeWorkspaceId, workflow]);
-
-  const agentContext = useMemo(
-    () => ({
-      page: "studio-writing-workflow",
-      activeWorkspace: activeStep.title,
-      currentStage: studioSteps.find((step) => step.id === workflow.currentStageId)?.title ?? "未开始",
-      workflow,
-      writingIntent: project.writingIntent,
-      constraints: {
-        toolPolicy: activeStep.id === "idea-capture"
-          ? "Ask writing intent questions when needed. Once all required fields are clear, call proposeWritingIntent to show the candidate for user confirmation. Do not directly update or highlight left-side intent cards, and never mark the stage accepted or advance the workflow; only the user's confirmed 下一步 action can do that."
-          : "Use only tools registered by the active Studio workspace. Suggestions must not confirm a stage or advance the writing workflow.",
-      },
-    }),
-    [activeStep.id, activeStep.title, project.writingIntent, workflow],
-  );
-
-  useAgentContext({
-    description: "Current FlowDraft writing workflow snapshot. Browsing a workspace does not change the actual workflow stage or confirm an artifact.",
-    value: agentContext,
-  });
 
   function notify(text: string) {
     setUi((current) => ({ ...current, toast: { text, visible: true } }));

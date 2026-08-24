@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import "./idea-capture.css";
 
+import { IdeaCaptureCopilotContext } from "./IdeaCaptureCopilotContext";
 import { IdeaCaptureIntentPanel } from "./IdeaCaptureIntentPanel";
 import { IdeaCaptureCopilotTools } from "./IdeaCaptureCopilotTools";
 import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
@@ -84,6 +85,8 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
   return (
     <>
+      <IdeaCaptureCopilotContext controller={controller} />
+
       <section className="studio-stage studio-idea-stage">
         <div className="studio-idea-heading">
         </div>

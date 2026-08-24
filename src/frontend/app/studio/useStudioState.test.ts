@@ -5,10 +5,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useStudioState } from "./useStudioState";
 
-vi.mock("@copilotkit/react-core/v2", () => ({
-  useAgentContext: vi.fn(),
-}));
-
 const writingIntent = {
   rawIdea: "想写 Agent 产品工程",
   topic: "Agent 产品工程",
