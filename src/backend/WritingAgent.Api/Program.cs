@@ -1,4 +1,5 @@
 using Microsoft.Agents.AI.Hosting;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using WritingAgent.Api.Agents;
@@ -10,6 +11,14 @@ using WritingAgent.Infrastructure.Agents;
 using WritingAgent.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// builder.Services.AddHttpLogging(logging =>
+// {
+//     logging.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders | HttpLoggingFields.RequestBody
+//         | HttpLoggingFields.ResponsePropertiesAndHeaders | HttpLoggingFields.ResponseBody;
+//     logging.RequestBodyLogLimit = int.MaxValue;
+//     logging.ResponseBodyLogLimit = int.MaxValue;
+// });
 
 // 启用 OpenAPI 文档生成，供 Scalar 读取。
 builder.Services.AddOpenApi();

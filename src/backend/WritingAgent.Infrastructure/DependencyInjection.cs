@@ -67,7 +67,7 @@ public static class DependencyInjection
             return openAIClient
                 .GetChatClient(options.Chat.Model)
                 .AsIChatClient();
-        });
+        }).UseLogging();;
 
         return services;
     }
