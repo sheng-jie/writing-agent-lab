@@ -12,6 +12,7 @@ export function useStudioProgressState() {
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [externalProgress, setExternalProgress] = useState<StudioProgressSnapshot | null>(null);
   const [agentMessagesRestoreKey, setAgentMessagesRestoreKey] = useState(0);
+  const [resetKey, setResetKey] = useState(0);
   const [progressHydrated, setProgressHydrated] = useState(false);
   const [agentMessages, setAgentMessages] = useState<Record<string, AgentMessage[]>>({});
   const agentResetRef = useRef<(() => void) | null>(null);
@@ -28,6 +29,7 @@ export function useStudioProgressState() {
     agentRunning, setAgentRunning, agentDraftActive, setAgentDraftActive,
     saveWarning, setSaveWarning, externalProgress, setExternalProgress,
     agentMessagesRestoreKey, setAgentMessagesRestoreKey,
+    resetKey, setResetKey,
     progressHydrated, setProgressHydrated, agentMessages, setAgentMessages,
     agentResetRef, skipNextSaveRef, registerAgentReset,
   };

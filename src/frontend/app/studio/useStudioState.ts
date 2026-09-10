@@ -38,6 +38,7 @@ export function useStudioState(): StudioController {
     agentRunning, setAgentRunning, agentDraftActive, setAgentDraftActive,
     saveWarning, setSaveWarning, externalProgress, setExternalProgress,
     agentMessagesRestoreKey, setAgentMessagesRestoreKey,
+    resetKey, setResetKey,
     progressHydrated, setProgressHydrated, agentMessages, setAgentMessages,
     agentResetRef, skipNextSaveRef, registerAgentReset,
   } = useStudioProgressState();
@@ -174,11 +175,16 @@ export function useStudioState(): StudioController {
     return true;
   }
 
+  function triggerResetSignal() {
+    setAgentMessagesRestoreKey((current) => current + 1);
+    setResetKey((current) => current + 1);
+    agentResetRef.current?.();
+  }
+
   function applyRestartIdeaCapture() {
     clearStudioProgress();
     setAgentMessages({});
-    setAgentMessagesRestoreKey((current) => current + 1);
-    agentResetRef.current?.();
+    triggerResetSignal();
     setWorkflow(createInitialWorkflow());
     setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
     notify("已重新开始写作意图识别");
@@ -265,8 +271,7 @@ export function useStudioState(): StudioController {
     const resetIndex = studioStageIds.indexOf(stageId);
     const resetAgentIds = new Set(studioStageIds.slice(resetIndex).map((id) => studioAgentByStage[id]));
     setAgentMessages((current) => Object.fromEntries(Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId))));
-    setAgentMessagesRestoreKey((current) => current + 1);
-    agentResetRef.current?.();
+    triggerResetSignal();
     const result = executeWorkflowCommand(workflow, { type: "reset-stage", stageId });
     if (!result.ok) return;
     setWorkflow(result.workflow);
@@ -302,7 +307,7 @@ export function useStudioState(): StudioController {
     clearStudioProgress();
     setWorkflow(createInitialWorkflow());
     setAgentMessages({});
-    setAgentMessagesRestoreKey((current) => current + 1);
+    triggerResetSignal();
     setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
     notify("已开始新的写作工作流");
   }
@@ -338,6 +343,7 @@ export function useStudioState(): StudioController {
       saveWarning,
       externalProgressAvailable: externalProgress !== null,
       agentMessagesRestoreKey,
+      resetKey,
       setAgentRunning,
       setAgentDraftActive,
       registerAgentReset,

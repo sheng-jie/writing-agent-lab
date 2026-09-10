@@ -11,10 +11,9 @@ type WorkspaceProps = { controller: StudioController };
 
 export function StepWorkspace({ controller }: WorkspaceProps) {
   const stageId = controller.workspace.activeWorkspaceId;
-  const stage = controller.workflow.snapshot.stages[stageId];
-  const workspaceResetKey = `${stageId}:${stage.status}:${stage.revision}`;
+  const workspaceResetKey = `${stageId}:${controller.progress.resetKey}`;
 
-  // 强制在阶段重置后重挂载当前工作区，确保 AgentPanel 会话历史与本地状态同步清空。
+  // 仅由工作台统一发起的重置信号触发工作区重挂载，避免状态变化与重置语义分散。
   switch (stageId) {
     case "idea-capture":
       return <IdeaCaptureWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;

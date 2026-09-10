@@ -49,6 +49,7 @@ export type StudioController = {
     saveWarning: string | null;
     externalProgressAvailable: boolean;
     agentMessagesRestoreKey: number;
+    resetKey: number;
     setAgentRunning: (running: boolean) => void;
     setAgentDraftActive: (active: boolean) => void;
     registerAgentReset: (reset: () => void) => () => void;

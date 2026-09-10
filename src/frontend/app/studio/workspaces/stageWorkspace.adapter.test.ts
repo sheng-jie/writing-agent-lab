@@ -33,6 +33,7 @@ function createController(): StudioController {
       saveWarning: null,
       externalProgressAvailable: false,
       agentMessagesRestoreKey: 3,
+      resetKey: 7,
       setAgentRunning: vi.fn(),
       setAgentDraftActive: vi.fn(),
       registerAgentReset: vi.fn(() => vi.fn()),
