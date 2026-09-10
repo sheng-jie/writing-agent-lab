@@ -5,15 +5,14 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
-import { studioAgentByStage } from "../../studio.config";
-import type { StudioController } from "../../studio.controller";
+import type { StageWorkspaceAdapter } from "../workspace.adapter";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
-export function ImagePlanningWorkspace({ controller }: { controller: StudioController }) {
-  const agentId = studioAgentByStage["image-planning"];
+export function ImagePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"image-planning"> }) {
+  const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 
-  useEffect(() => controller.progress.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
+  useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
 
   return (
     <>
@@ -41,13 +40,13 @@ export function ImagePlanningWorkspace({ controller }: { controller: StudioContr
             },
           ],
         }}
-        onRunningChange={controller.progress.setAgentRunning}
-        initialMessages={controller.progress.getAgentMessages(agentId)}
-        onMessagesChange={(messages) => controller.progress.updateAgentMessages(agentId, messages)}
-        onDraftChange={controller.progress.setAgentDraftActive}
-        restoreKey={controller.progress.agentMessagesRestoreKey}
+        onRunningChange={workspace.agent.setRunning}
+        initialMessages={workspace.agent.getMessages()}
+        onMessagesChange={workspace.agent.updateMessages}
+        onDraftChange={workspace.agent.setDraftActive}
+        restoreKey={workspace.agent.restoreKey}
       >
-        <StudioStepCopilotTools stageId="image-planning" agentId={agentId} controller={controller} />
+        <StudioStepCopilotTools workspace={workspace} />
       </AgentPanel>
     </>
   );

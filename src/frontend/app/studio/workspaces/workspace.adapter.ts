@@ -1,0 +1,55 @@
+import type { AgentMessage } from "@/components/agent/useAgentChat";
+
+import { studioAgentByStage } from "../studio.config";
+import type { StudioController, StudioStep } from "../studio.controller";
+import type { StageArtifactMap, StageRecord, StudioStageId } from "../studio.workflow";
+
+export type StageWorkspaceAdapter<K extends StudioStageId> = {
+  stageId: K;
+  step: StudioStep;
+  agentId: string;
+  stage: StageRecord<StageArtifactMap[K]>;
+  artifact: StageArtifactMap[K] | null;
+  readOnly: boolean;
+  notify: (message: string) => void;
+  updateArtifact: (patch: Partial<StageArtifactMap[K]>) => boolean;
+  generateArtifact: (artifact: StageArtifactMap[K]) => boolean;
+  restartIdeaCapture: () => boolean;
+  agent: {
+    restoreKey: number;
+    setRunning: (running: boolean) => void;
+    setDraftActive: (active: boolean) => void;
+    registerReset: (reset: () => void) => () => void;
+    getMessages: () => AgentMessage[] | undefined;
+    updateMessages: (messages: AgentMessage[]) => void;
+  };
+};
+
+export function createStageWorkspaceAdapter<K extends StudioStageId>(
+  controller: StudioController,
+  stageId: K,
+): StageWorkspaceAdapter<K> {
+  const agentId = studioAgentByStage[stageId];
+  const stage = controller.workflow.snapshot.stages[stageId];
+
+  return {
+    stageId,
+    step: controller.workspace.activeStep,
+    agentId,
+    stage,
+    artifact: controller.workflow.getStageArtifact(stageId),
+    readOnly: controller.workflow.snapshot.status === "completed" || stage.status === "accepted",
+    notify: controller.ui.notify,
+    updateArtifact: (patch) => controller.workflow.updateStageArtifact(stageId, patch),
+    generateArtifact: (artifact) => controller.workflow.generateStageArtifact(stageId, artifact),
+    restartIdeaCapture: controller.workflow.restartIdeaCapture,
+    agent: {
+      restoreKey: controller.progress.agentMessagesRestoreKey,
+      setRunning: controller.progress.setAgentRunning,
+      setDraftActive: controller.progress.setAgentDraftActive,
+      registerReset: controller.progress.registerAgentReset,
+      getMessages: () => controller.progress.getAgentMessages(agentId),
+      updateMessages: (messages) => controller.progress.updateAgentMessages(agentId, messages),
+    },
+  };
+}

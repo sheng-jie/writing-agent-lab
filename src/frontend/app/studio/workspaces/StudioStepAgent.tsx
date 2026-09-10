@@ -3,7 +3,7 @@
 import { useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 
-import type { StudioController } from "../studio.controller";
+import type { StageWorkspaceAdapter } from "./workspace.adapter";
 import type { StageArtifactMap, StudioStageId } from "../studio.workflow";
 
 const topicCandidateSchema = z.object({
@@ -39,11 +39,10 @@ const toolConfigs = {
 
 type GeneratedStageId = keyof typeof artifactSchemas;
 
-export function StudioStepCopilotTools<K extends GeneratedStageId>({ stageId, agentId, controller }: {
-  stageId: K;
-  agentId: string;
-  controller: StudioController;
+export function StudioStepCopilotTools<K extends GeneratedStageId>({ workspace }: {
+  workspace: StageWorkspaceAdapter<K>;
 }) {
+  const { stageId, agentId } = workspace;
   const config = toolConfigs[stageId];
   const parameters = artifactSchemas[stageId] as unknown as z.ZodType<StageArtifactMap[K]>;
 
@@ -54,11 +53,11 @@ export function StudioStepCopilotTools<K extends GeneratedStageId>({ stageId, ag
       description: config.description,
       parameters,
       handler: async (artifact: StageArtifactMap[K]) => {
-        const generated = controller.workflow.generateStageArtifact(stageId, artifact);
-        return { ok: generated, stage: controller.workspace.activeStep.title };
+        const generated = workspace.generateArtifact(artifact);
+        return { ok: generated, stage: workspace.step.title };
       },
     },
-    [agentId, controller, stageId],
+    [agentId, stageId, workspace],
   );
 
   return null;

@@ -3,10 +3,10 @@
 import { useAgentContext } from "@copilotkit/react-core/v2";
 import { useMemo } from "react";
 
-import type { StudioController } from "../../studio.controller";
+import type { StageWorkspaceAdapter } from "../workspace.adapter";
 
-export function IdeaCaptureCopilotContext({ controller }: { controller: StudioController }) {
-  const writingIntent = controller.workflow.getStageArtifact("idea-capture");
+export function IdeaCaptureCopilotContext({ workspace }: { workspace: StageWorkspaceAdapter<"idea-capture"> }) {
+  const writingIntent = workspace.artifact;
   const context = useMemo(
     () => ({
       currentWritingIntentDraft: writingIntent,

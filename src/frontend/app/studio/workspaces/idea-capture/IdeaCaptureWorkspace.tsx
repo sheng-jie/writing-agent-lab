@@ -10,20 +10,20 @@ import { IdeaCaptureIntentPanel } from "./IdeaCaptureIntentPanel";
 import { IdeaCaptureCopilotTools } from "./IdeaCaptureCopilotTools";
 import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
 
-import type { StudioController } from "../../studio.controller";
+import type { StageWorkspaceAdapter } from "../workspace.adapter";
 
-export function IdeaCaptureWorkspace({ controller }: { controller: StudioController }) {
+export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"idea-capture"> }) {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
   const agentPanelRef = useRef<AgentPanelRef>(null);
-  const writingIntent = controller.workflow.getStageArtifact("idea-capture") ?? emptyWritingIntent;
-  const phase = controller.workflow.snapshot.stages["idea-capture"].generatedAt !== null
+  const writingIntent = workspace.artifact ?? emptyWritingIntent;
+  const phase = workspace.stage.generatedAt !== null
     ? "card"
     : hasWritingIntent(writingIntent) ? "identifying" : "initial";
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
-    return controller.progress.registerAgentReset(() => agentPanelRef.current?.reset());
-  }, [controller]);
+    return workspace.agent.registerReset(() => agentPanelRef.current?.reset());
+  }, [workspace]);
 
   useEffect(() => {
     if (prevPhaseRef.current === "card" && phase !== "card") {
@@ -31,7 +31,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
       agentPanelRef.current?.reset();
     }
     prevPhaseRef.current = phase;
-  }, [controller, phase]);
+  }, [phase, workspace]);
 
   function flashCard(name: string) {
     setUpdatedCards((current) => new Set(current).add(name));
@@ -46,12 +46,12 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
   const ideaCaptureController: IdeaCaptureState = {
     phase,
-    editable: controller.workflow.snapshot.stages["idea-capture"].status !== "accepted",
+    editable: !workspace.readOnly,
     writingIntent,
     updatedCards,
-    notify: controller.ui.notify,
+    notify: workspace.notify,
     updateWritingIntent: (patch) => {
-      if (!controller.workflow.updateStageArtifact("idea-capture", patch)) return [];
+      if (!workspace.updateArtifact(patch)) return [];
       const changedCards = Object.keys(patch).flatMap((key) => {
         const cardByField: Record<string, string> = {
           rawIdea: "raw",
@@ -65,15 +65,15 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
         return cardByField[key] ? [cardByField[key]] : [];
       });
       changedCards.forEach(flashCard);
-      controller.ui.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
+      workspace.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
       return changedCards;
     },
-    proposeWritingIntent: (candidate) => controller.workflow.generateStageArtifact("idea-capture", {
+    proposeWritingIntent: (candidate) => workspace.generateArtifact({
       ...writingIntent,
       ...candidate,
     }),
     restart: () => {
-      if (controller.workflow.restartIdeaCapture()) {
+      if (workspace.restartIdeaCapture()) {
         setUpdatedCards(new Set());
         agentPanelRef.current?.reset();
       }
@@ -82,7 +82,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
   return (
     <>
-      <IdeaCaptureCopilotContext controller={controller} />
+      <IdeaCaptureCopilotContext workspace={workspace} />
 
       <section className="studio-stage studio-idea-stage">
         <div className="studio-idea-heading">
@@ -92,7 +92,7 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
 
       <AgentPanel
         ref={agentPanelRef}
-        agentId="ideaCaptureAgent"
+        agentId={workspace.agentId}
         className="studio-agent-panel"
         title="意图识别 Agent"
         description="通过关键追问补齐结构化写作意图的 7 个字段。"
@@ -110,12 +110,12 @@ export function IdeaCaptureWorkspace({ controller }: { controller: StudioControl
             },
           ],
         }}
-        onError={() => controller.ui.notify("Agent 出错了，请稍后重试")}
-        onRunningChange={controller.progress.setAgentRunning}
-        initialMessages={controller.progress.getAgentMessages("ideaCaptureAgent")}
-        onMessagesChange={(messages) => controller.progress.updateAgentMessages("ideaCaptureAgent", messages)}
-        onDraftChange={controller.progress.setAgentDraftActive}
-        restoreKey={controller.progress.agentMessagesRestoreKey}
+        onError={() => workspace.notify("Agent 出错了，请稍后重试")}
+        onRunningChange={workspace.agent.setRunning}
+        initialMessages={workspace.agent.getMessages()}
+        onMessagesChange={workspace.agent.updateMessages}
+        onDraftChange={workspace.agent.setDraftActive}
+        restoreKey={workspace.agent.restoreKey}
       >
         <IdeaCaptureCopilotTools controller={ideaCaptureController} />
       </AgentPanel>
