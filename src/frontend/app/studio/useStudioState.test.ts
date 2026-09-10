@@ -131,6 +131,32 @@ describe("工作台当前写作工作流控制器", () => {
     expect(result.current.workflow.getStageArtifact("topic-generation")).toEqual({ candidates: [], selectedCandidateId: "" });
   });
 
+  it("输入框有未发送草稿时延迟载入其他标签页的新进度", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    acceptCurrentStage(result);
+    act(() => result.current.progress.setAgentDraftActive(true));
+    const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
+    external.workflow.stages["topic-generation"].artifact = { candidates: [], selectedCandidateId: "" };
+
+    act(() => window.dispatchEvent(new StorageEvent("storage", { key: progressStorageKey, newValue: JSON.stringify(external) })));
+
+    expect(result.current.progress.externalProgressAvailable).toBe(true);
+    expect(result.current.workflow.getStageArtifact("topic-generation")).toBeNull();
+  });
+
+  it("Agent 运行中不能切换工作区", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    acceptCurrentStage(result);
+    act(() => result.current.progress.setAgentRunning(true));
+
+    act(() => result.current.workspace.selectWorkspace("idea-capture"));
+
+    expect(result.current.workspace.activeWorkspaceId).toBe("topic-generation");
+    expect(result.current.ui.toast.text).toBe("Agent 处理完成后才能切换工作区");
+  });
+
   it("重新开始捕捉想法清空全部阶段产物与 Agent 消息", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.progress.updateAgentMessages("ideaCaptureAgent", [{ id: "1", role: "user", content: "旧对话" }]));
