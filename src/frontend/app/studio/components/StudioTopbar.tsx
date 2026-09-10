@@ -1,9 +1,9 @@
 "use client";
 
-import type { StudioController } from "../studio.types";
+import type { StudioController } from "../studio.controller";
 
 export function StudioTopbar({ controller }: { controller: StudioController }) {
-  const { activeStep } = controller;
+  const { activeStep } = controller.workspace;
 
   return (
     <header className="studio-topbar">

@@ -3,7 +3,7 @@
 import { useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 
-import type { StudioController } from "../studio.types";
+import type { StudioController } from "../studio.controller";
 import type { StageArtifactMap, StudioStageId } from "../studio.workflow";
 
 const topicCandidateSchema = z.object({
@@ -54,8 +54,8 @@ export function StudioStepCopilotTools<K extends GeneratedStageId>({ stageId, ag
       description: config.description,
       parameters,
       handler: async (artifact: StageArtifactMap[K]) => {
-        const generated = controller.generateStageArtifact(stageId, artifact);
-        return { ok: generated, stage: controller.activeStep.title };
+        const generated = controller.workflow.generateStageArtifact(stageId, artifact);
+        return { ok: generated, stage: controller.workspace.activeStep.title };
       },
     },
     [agentId, controller, stageId],

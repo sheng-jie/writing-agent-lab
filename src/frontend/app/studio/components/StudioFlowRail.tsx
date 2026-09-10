@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 import { studioSteps } from "../studio.config";
 import { canSelectWorkspace, getStageStateLabel } from "../studio.workflow";
-import type { StudioController } from "../studio.types";
+import type { StudioController } from "../studio.controller";
 
 export function StudioFlowRail({ controller }: { controller: StudioController }) {
   return (
@@ -23,8 +23,8 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
         <button
           className="studio-icon-button"
           type="button"
-          aria-label={controller.collapsed ? "展开创作流程栏" : "收起创作流程栏"}
-          onClick={controller.toggleRail}
+          aria-label={controller.ui.collapsed ? "展开创作流程栏" : "收起创作流程栏"}
+          onClick={controller.ui.toggleRail}
         >
           <ChevronLeft />
         </button>
@@ -32,17 +32,17 @@ export function StudioFlowRail({ controller }: { controller: StudioController })
 
       <nav className="studio-steps" aria-label="步骤流">
         {studioSteps.map((step, stepIndex) => {
-          const stage = controller.workflow.stages[step.id];
-          const isActive = step.id === controller.activeWorkspaceId;
+          const stage = controller.workflow.snapshot.stages[step.id];
+          const isActive = step.id === controller.workspace.activeWorkspaceId;
           const isDone = stage.status === "accepted";
-          const canSelect = canSelectWorkspace(controller.workflow, step.id);
+          const canSelect = canSelectWorkspace(controller.workflow.snapshot, step.id);
 
           return (
             <button
               key={step.id}
               type="button"
               className={cn("studio-step", isActive && "active", isDone && "done")}
-              onClick={() => controller.selectWorkspace(step.id)}
+              onClick={() => controller.workspace.selectWorkspace(step.id)}
               disabled={!canSelect}
               aria-current={isActive ? "step" : undefined}
               data-title={step.title}

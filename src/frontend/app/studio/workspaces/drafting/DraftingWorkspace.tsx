@@ -5,14 +5,14 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 import { studioAgentByStage } from "../../studio.config";
-import type { StudioController } from "../../studio.types";
+import type { StudioController } from "../../studio.controller";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function DraftingWorkspace({ controller }: { controller: StudioController }) {
   const agentId = studioAgentByStage.drafting;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 
-  useEffect(() => controller.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
+  useEffect(() => controller.progress.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
 
   return (
     <>
@@ -40,11 +40,11 @@ export function DraftingWorkspace({ controller }: { controller: StudioController
             },
           ],
         }}
-        onRunningChange={controller.setAgentRunning}
-        initialMessages={controller.getAgentMessages(agentId)}
-        onMessagesChange={(messages) => controller.updateAgentMessages(agentId, messages)}
-        onDraftChange={controller.setAgentDraftActive}
-        restoreKey={controller.agentMessagesRestoreKey}
+        onRunningChange={controller.progress.setAgentRunning}
+        initialMessages={controller.progress.getAgentMessages(agentId)}
+        onMessagesChange={(messages) => controller.progress.updateAgentMessages(agentId, messages)}
+        onDraftChange={controller.progress.setAgentDraftActive}
+        restoreKey={controller.progress.agentMessagesRestoreKey}
       >
         <StudioStepCopilotTools stageId="drafting" agentId={agentId} controller={controller} />
       </AgentPanel>

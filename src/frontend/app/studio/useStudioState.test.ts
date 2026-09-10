@@ -35,8 +35,8 @@ beforeAll(() => {
 });
 
 function acceptCurrentStage(result: ReturnType<typeof renderHook<ReturnType<typeof useStudioState>, unknown>>["result"]) {
-  act(() => result.current.runStageAction());
-  act(() => result.current.confirmPendingAction());
+  act(() => result.current.workflow.runStageAction());
+  act(() => result.current.ui.confirmPendingAction());
 }
 
 function generateAllStages(result: ReturnType<typeof renderHook<ReturnType<typeof useStudioState>, unknown>>["result"]) {
@@ -49,7 +49,7 @@ function generateAllStages(result: ReturnType<typeof renderHook<ReturnType<typeo
     ["image-planning", { title: "定稿标题", content: "定稿正文", illustrations: [] }],
   ];
   for (const [stageId, artifact] of stages) {
-    act(() => result.current.generateStageArtifact(stageId, artifact as never));
+    act(() => result.current.workflow.generateStageArtifact(stageId, artifact as never));
     acceptCurrentStage(result);
   }
 }
@@ -63,24 +63,24 @@ describe("工作台当前写作工作流控制器", () => {
   it("生成与修正都操作同一个阶段 artifact", () => {
     const { result } = renderHook(() => useStudioState());
 
-    act(() => result.current.generateStageArtifact("idea-capture", writingIntent));
-    act(() => result.current.updateStageArtifact("idea-capture", { topic: "可演进的 Agent 产品工程" }));
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.updateStageArtifact("idea-capture", { topic: "可演进的 Agent 产品工程" }));
 
-    expect(result.current.getStageArtifact("idea-capture")).toEqual({ ...writingIntent, topic: "可演进的 Agent 产品工程" });
-    expect(result.current.workflow.stages["idea-capture"].generatedAt).not.toBeNull();
+    expect(result.current.workflow.getStageArtifact("idea-capture")).toEqual({ ...writingIntent, topic: "可演进的 Agent 产品工程" });
+    expect(result.current.workflow.snapshot.stages["idea-capture"].generatedAt).not.toBeNull();
   });
 
   it("下一步先确认，确认后才原子推进并保存 v2 快照", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
 
-    act(() => result.current.runStageAction());
-    expect(result.current.activeWorkspaceId).toBe("idea-capture");
-    expect(result.current.confirmation?.description).toContain("写作主题：Agent 产品工程");
+    act(() => result.current.workflow.runStageAction());
+    expect(result.current.workspace.activeWorkspaceId).toBe("idea-capture");
+    expect(result.current.ui.confirmation?.description).toContain("写作主题：Agent 产品工程");
 
-    act(() => result.current.confirmPendingAction());
-    expect(result.current.activeWorkspaceId).toBe("topic-generation");
-    expect(result.current.workflow.stages["idea-capture"].status).toBe("accepted");
+    act(() => result.current.ui.confirmPendingAction());
+    expect(result.current.workspace.activeWorkspaceId).toBe("topic-generation");
+    expect(result.current.workflow.snapshot.stages["idea-capture"].status).toBe("accepted");
     const snapshot = JSON.parse(localStorage.getItem(progressStorageKey)!);
     expect(snapshot.version).toBe(2);
     expect(snapshot).not.toHaveProperty("project");
@@ -88,61 +88,61 @@ describe("工作台当前写作工作流控制器", () => {
 
   it("首次接受前刷新不恢复草稿", () => {
     const first = renderHook(() => useStudioState());
-    act(() => first.result.current.updateStageArtifact("idea-capture", { rawIdea: "未接受的想法" }));
+    act(() => first.result.current.workflow.updateStageArtifact("idea-capture", { rawIdea: "未接受的想法" }));
     first.unmount();
 
     const restored = renderHook(() => useStudioState());
-    expect(restored.result.current.getStageArtifact("idea-capture")).toBeNull();
+    expect(restored.result.current.workflow.getStageArtifact("idea-capture")).toBeNull();
   });
 
   it("v1 与损坏快照都整体放弃", () => {
     localStorage.setItem(progressStorageKey, JSON.stringify({ version: 1, workflow: {} }));
     const { result } = renderHook(() => useStudioState());
 
-    expect(result.current.workflow.currentStageId).toBe("idea-capture");
+    expect(result.current.workflow.snapshot.currentStageId).toBe("idea-capture");
     expect(localStorage.getItem(progressStorageKey)).toBeNull();
-    expect(result.current.toast.text).toBe("上次进度无法恢复，已重新开始");
+    expect(result.current.ui.toast.text).toBe("上次进度无法恢复，已重新开始");
   });
 
   it("首次接受保存失败时不推进", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
     vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
 
-    act(() => result.current.runStageAction());
-    act(() => result.current.confirmPendingAction());
+    act(() => result.current.workflow.runStageAction());
+    act(() => result.current.ui.confirmPendingAction());
 
-    expect(result.current.workflow.currentStageId).toBe("idea-capture");
-    expect(result.current.saveWarning).toBe("进度保存失败，尚未进入下一阶段");
+    expect(result.current.workflow.snapshot.currentStageId).toBe("idea-capture");
+    expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未进入下一阶段");
   });
 
   it("繁忙时延迟载入其他标签页的新进度", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
     acceptCurrentStage(result);
-    act(() => result.current.setAgentDraftActive(true));
+    act(() => result.current.progress.setAgentDraftActive(true));
     const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
     external.workflow.stages["topic-generation"].artifact = { candidates: [], selectedCandidateId: "" };
 
     act(() => window.dispatchEvent(new StorageEvent("storage", { key: progressStorageKey, newValue: JSON.stringify(external) })));
-    expect(result.current.externalProgressAvailable).toBe(true);
+    expect(result.current.progress.externalProgressAvailable).toBe(true);
 
-    act(() => result.current.loadExternalProgress());
-    expect(result.current.getStageArtifact("topic-generation")).toEqual({ candidates: [], selectedCandidateId: "" });
+    act(() => result.current.progress.loadExternalProgress());
+    expect(result.current.workflow.getStageArtifact("topic-generation")).toEqual({ candidates: [], selectedCandidateId: "" });
   });
 
   it("重新开始捕捉想法清空全部阶段产物与 Agent 消息", () => {
     const { result } = renderHook(() => useStudioState());
-    act(() => result.current.updateAgentMessages("ideaCaptureAgent", [{ id: "1", role: "user", content: "旧对话" }]));
-    act(() => result.current.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.progress.updateAgentMessages("ideaCaptureAgent", [{ id: "1", role: "user", content: "旧对话" }]));
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
     acceptCurrentStage(result);
-    act(() => result.current.selectWorkspace("idea-capture"));
-    act(() => result.current.restartIdeaCapture());
-    act(() => result.current.confirmPendingAction());
+    act(() => result.current.workspace.selectWorkspace("idea-capture"));
+    act(() => result.current.workflow.restartIdeaCapture());
+    act(() => result.current.ui.confirmPendingAction());
 
-    expect(result.current.getStageArtifact("idea-capture")).toBeNull();
-    expect(result.current.getStageArtifact("topic-generation")).toBeNull();
-    expect(result.current.getAgentMessages("ideaCaptureAgent")).toEqual([]);
+    expect(result.current.workflow.getStageArtifact("idea-capture")).toBeNull();
+    expect(result.current.workflow.getStageArtifact("topic-generation")).toBeNull();
+    expect(result.current.progress.getAgentMessages("ideaCaptureAgent")).toEqual([]);
   });
 
   it("文章保存成功后结束工作流并可开始新的工作流", async () => {
@@ -150,13 +150,13 @@ describe("工作台当前写作工作流控制器", () => {
     generateAllStages(result);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "article-1" }) }));
 
-    await act(async () => result.current.saveArticle());
-    expect(result.current.workflow).toMatchObject({ status: "completed", articleId: "article-1" });
-    expect(result.current.articleSaved).toBe(true);
+    await act(async () => result.current.workflow.saveArticle());
+    expect(result.current.workflow.snapshot).toMatchObject({ status: "completed", articleId: "article-1" });
+    expect(result.current.workflow.articleSaved).toBe(true);
 
-    act(() => result.current.startNewWorkflow());
-    expect(result.current.workflow.status).toBe("active");
-    expect(result.current.getStageArtifact("idea-capture")).toBeNull();
+    act(() => result.current.workflow.startNewWorkflow());
+    expect(result.current.workflow.snapshot.status).toBe("active");
+    expect(result.current.workflow.getStageArtifact("idea-capture")).toBeNull();
   });
 
   it("文章保存失败时保留已接受配图稿以便重试", async () => {
@@ -164,9 +164,9 @@ describe("工作台当前写作工作流控制器", () => {
     generateAllStages(result);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
 
-    await act(async () => result.current.saveArticle());
-    expect(result.current.workflow.status).toBe("active");
-    expect(result.current.workflow.stages["image-planning"].status).toBe("accepted");
-    expect(result.current.saveWarning).toBe("文章保存失败，请重试");
+    await act(async () => result.current.workflow.saveArticle());
+    expect(result.current.workflow.snapshot.status).toBe("active");
+    expect(result.current.workflow.snapshot.stages["image-planning"].status).toBe("accepted");
+    expect(result.current.progress.saveWarning).toBe("文章保存失败，请重试");
   });
 });

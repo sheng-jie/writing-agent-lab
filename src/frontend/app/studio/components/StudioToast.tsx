@@ -1,11 +1,11 @@
-import type { StudioController } from "../studio.types";
+import type { StudioController } from "../studio.controller";
 
 export function StudioToast({ controller }: { controller: StudioController }) {
-  if (!controller.toast.visible) return null;
+  if (!controller.ui.toast.visible) return null;
 
   return (
     <div className="studio-toast" role="status">
-      {controller.toast.text}
+      {controller.ui.toast.text}
     </div>
   );
 }

@@ -4,17 +4,17 @@ import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useEffect, useRef } from "react";
 
 import { studioAgentByStage } from "../../studio.config";
-import type { StudioController } from "../../studio.types";
+import type { StudioController } from "../../studio.controller";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function TopicGenerationWorkspace({ controller }: { controller: StudioController }) {
   const agentId = studioAgentByStage["topic-generation"];
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
-  const artifact = controller.getStageArtifact("topic-generation");
-  const readOnly = controller.workflow.status === "completed"
-    || controller.workflow.stages["topic-generation"].status === "accepted";
+  const artifact = controller.workflow.getStageArtifact("topic-generation");
+  const readOnly = controller.workflow.snapshot.status === "completed"
+    || controller.workflow.snapshot.stages["topic-generation"].status === "accepted";
 
-  useEffect(() => controller.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
+  useEffect(() => controller.progress.registerAgentReset(() => agentPanelRef.current?.reset()), [controller]);
 
   return (
     <>
@@ -44,7 +44,7 @@ export function TopicGenerationWorkspace({ controller }: { controller: StudioCon
                           name="selected-topic"
                           value={candidate.id}
                           checked={selected}
-                          onChange={() => controller.updateStageArtifact("topic-generation", { selectedCandidateId: candidate.id })}
+                          onChange={() => controller.workflow.updateStageArtifact("topic-generation", { selectedCandidateId: candidate.id })}
                           className="mt-1 size-4 accent-[var(--teal)]"
                         />
                         <span className="grid gap-1">
@@ -91,12 +91,12 @@ export function TopicGenerationWorkspace({ controller }: { controller: StudioCon
             },
           ],
         }}
-        onError={() => controller.notify("Agent 出错了，请稍后重试")}
-        onRunningChange={controller.setAgentRunning}
-        initialMessages={controller.getAgentMessages(agentId)}
-        onMessagesChange={(messages) => controller.updateAgentMessages(agentId, messages)}
-        onDraftChange={controller.setAgentDraftActive}
-        restoreKey={controller.agentMessagesRestoreKey}
+        onError={() => controller.ui.notify("Agent 出错了，请稍后重试")}
+        onRunningChange={controller.progress.setAgentRunning}
+        initialMessages={controller.progress.getAgentMessages(agentId)}
+        onMessagesChange={(messages) => controller.progress.updateAgentMessages(agentId, messages)}
+        onDraftChange={controller.progress.setAgentDraftActive}
+        restoreKey={controller.progress.agentMessagesRestoreKey}
       >
         <StudioStepCopilotTools stageId="topic-generation" agentId={agentId} controller={controller} />
       </AgentPanel>

@@ -15,20 +15,17 @@ import {
 } from "./studio.persistence";
 import {
   canSelectWorkspace,
-  completeWorkflow,
   createInitialWorkflow,
+  executeWorkflowCommand,
   getNextStageId,
   getStageAction,
-  openWorkspace,
-  proposeStageArtifact,
-  resolveStageAcceptance,
-  resetWorkflowFromStage,
   studioStageIds,
-  updateStageArtifactDraft,
+  type WorkflowCommandFor,
+  type WorkflowCommand,
   type StageArtifactMap,
   type StudioStageId,
 } from "./studio.workflow";
-import type { StudioConfirmation, StudioController, StudioUiState } from "./studio.types";
+import type { StudioConfirmation, StudioController, StudioUiState } from "./studio.controller";
 
 const railStorageKey = "flowdraft-studio-rail";
 const initialUiState: StudioUiState = {
@@ -151,17 +148,21 @@ export function useStudioState(): StudioController {
   }
 
   function updateStageArtifact<K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) {
-    if (workflow.status === "completed" || workflow.stages[stageId].status === "accepted") {
-      notify("当前阶段已确认，请先重置后再修改");
+    const command: WorkflowCommandFor<K> = { type: "update-artifact", stageId, patch, updatedAt: new Date().toISOString() };
+    const result = executeWorkflowCommand(workflow, command as WorkflowCommand);
+    if (!result.ok) {
+      notify(result.reason === "stage-not-editable" ? "当前阶段已确认，请先重置后再修改" : "当前写作工作流已完成");
       return false;
     }
-    setWorkflow((current) => updateStageArtifactDraft(current, stageId, patch, new Date().toISOString()));
+    setWorkflow(result.workflow);
     return true;
   }
 
   function generateStageArtifact<K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K]) {
-    if (workflow.status === "completed" || workflow.stages[stageId].status !== "in-progress") return false;
-    setWorkflow((current) => proposeStageArtifact(current, stageId, artifact, new Date().toISOString()));
+    const command: WorkflowCommandFor<K> = { type: "propose-artifact", stageId, artifact, updatedAt: new Date().toISOString() };
+    const result = executeWorkflowCommand(workflow, command as WorkflowCommand);
+    if (!result.ok) return false;
+    setWorkflow(result.workflow);
     notify("候选阶段产物已生成，可以继续修正");
     return true;
   }
@@ -229,7 +230,7 @@ export function useStudioState(): StudioController {
       notify("请先完成前一阶段");
       return;
     }
-    setUi((current) => ({ ...current, ...openWorkspace(current, stageId) }));
+      setUi((current) => ({ ...current, activeWorkspaceId: stageId }));
   }
 
   function goBack() {
@@ -261,8 +262,9 @@ export function useStudioState(): StudioController {
   }
 
   function acceptCurrentStage(stageId: StudioStageId) {
-    const acceptedWorkflow = resolveStageAcceptance(workflow, stageId, "confirm");
-    if (acceptedWorkflow === workflow) return false;
+    const result = executeWorkflowCommand(workflow, { type: "accept-stage", stageId });
+    if (!result.ok) return false;
+    const acceptedWorkflow = result.workflow;
     const nextStageId = getNextStageId(stageId);
     try {
       saveStudioProgress({
@@ -302,7 +304,9 @@ export function useStudioState(): StudioController {
     setAgentMessages((current) => Object.fromEntries(Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId))));
     setAgentMessagesRestoreKey((current) => current + 1);
     agentResetRef.current?.();
-    setWorkflow((current) => resetWorkflowFromStage(current, stageId));
+    const result = executeWorkflowCommand(workflow, { type: "reset-stage", stageId });
+    if (!result.ok) return;
+    setWorkflow(result.workflow);
     setUi((current) => ({ ...current, activeWorkspaceId: stageId }));
     notify("当前及后续流程产物已清空");
   }
@@ -322,7 +326,8 @@ export function useStudioState(): StudioController {
       });
       if (!response.ok) throw new Error("Article save failed");
       const article = await response.json() as { id: string };
-      setWorkflow((current) => completeWorkflow(current, article.id));
+      const result = executeWorkflowCommand(workflow, { type: "complete-workflow", articleId: article.id });
+      if (result.ok) setWorkflow(result.workflow);
       notify("文章已保存");
     } catch {
       setSaveWarning("文章保存失败，请重试");
@@ -350,40 +355,34 @@ export function useStudioState(): StudioController {
   }
 
   return {
-    activeWorkspaceId: ui.activeWorkspaceId,
-    activeStep,
-    workflow,
-    stageAction,
-    ui,
-    articleSaved: workflow.status === "completed",
-    agentRunning,
-    saveWarning,
-    externalProgressAvailable: externalProgress !== null,
-    agentMessagesRestoreKey,
-    collapsed: ui.collapsed,
-    toast: ui.toast,
-    confirmation,
-    selectWorkspace,
-    toggleRail,
-    getStageArtifact,
-    updateStageArtifact,
-    generateStageArtifact,
-    setAgentRunning,
-    setAgentDraftActive,
-    registerAgentReset,
-    getAgentMessages,
-    updateAgentMessages,
-    loadExternalProgress,
-    restartIdeaCapture,
-    goBack,
-    runStageAction,
-    resetStage,
-    saveArticle,
-    startNewWorkflow,
-    copyStage,
-    notify,
-    confirmPendingAction,
-    cancelPendingAction,
+    workflow: {
+      snapshot: workflow,
+      stageAction,
+      articleSaved: workflow.status === "completed",
+      getStageArtifact,
+      updateStageArtifact,
+      generateStageArtifact,
+      restartIdeaCapture,
+      runStageAction,
+      resetStage,
+      saveArticle,
+      startNewWorkflow,
+    },
+    workspace: { activeWorkspaceId: ui.activeWorkspaceId, activeStep, selectWorkspace, goBack },
+    progress: {
+      agentRunning,
+      agentDraftActive,
+      saveWarning,
+      externalProgressAvailable: externalProgress !== null,
+      agentMessagesRestoreKey,
+      setAgentRunning,
+      setAgentDraftActive,
+      registerAgentReset,
+      getAgentMessages,
+      updateAgentMessages,
+      loadExternalProgress,
+    },
+    ui: { collapsed: ui.collapsed, toast: ui.toast, confirmation, toggleRail, notify, confirmPendingAction, cancelPendingAction },
   };
 }
 

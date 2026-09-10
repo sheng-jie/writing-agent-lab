@@ -78,14 +78,34 @@ export type WritingWorkflowSnapshot = {
   stages: { [K in StudioStageId]: StageRecord<StageArtifactMap[K]> };
 };
 
-export type StudioWorkspaceState = {
-  activeWorkspaceId: StudioStageId;
-};
-
 export type StageAction =
   | { kind: "blocked"; label: "下一步"; hint: string }
   | { kind: "advance"; label: "下一步"; hint: string }
   | { kind: "completed"; label: "下一步"; hint: string };
+
+export type WorkflowCommandFor<K extends StudioStageId> =
+  | { type: "propose-artifact"; stageId: K; artifact: StageArtifactMap[K]; updatedAt: string }
+  | { type: "update-artifact"; stageId: K; patch: Partial<StageArtifactMap[K]>; updatedAt: string };
+
+export type WorkflowCommand =
+  | { [K in StudioStageId]: WorkflowCommandFor<K> }[StudioStageId]
+  | { type: "accept-stage"; stageId: StudioStageId }
+  | { type: "reset-stage"; stageId: StudioStageId }
+  | { type: "complete-workflow"; articleId: string };
+
+export type WorkflowCommandRejection =
+  | "workflow-completed"
+  | "stage-not-editable"
+  | "stage-not-in-progress"
+  | "stage-artifact-incomplete"
+  | "stage-already-accepted"
+  | "stage-not-accepted"
+  | "upstream-stage-incomplete"
+  | "image-planning-not-accepted";
+
+export type WorkflowCommandResult =
+  | { ok: true; workflow: WritingWorkflowSnapshot }
+  | { ok: false; reason: WorkflowCommandRejection };
 
 function createStageRecord(status: StageStatus): StageRecord {
   return {
@@ -112,8 +132,52 @@ export function createInitialWorkflow(): WritingWorkflowSnapshot {
   };
 }
 
-export function openWorkspace(state: StudioWorkspaceState, stageId: StudioStageId): StudioWorkspaceState {
-  return { ...state, activeWorkspaceId: stageId };
+export function executeWorkflowCommand(
+  workflow: WritingWorkflowSnapshot,
+  command: WorkflowCommand,
+): WorkflowCommandResult {
+  switch (command.type) {
+    case "propose-artifact":
+      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
+      if (workflow.stages[command.stageId].status !== "in-progress") {
+        return { ok: false, reason: "stage-not-in-progress" };
+      }
+      return {
+        ok: true,
+        workflow: proposeStageArtifact(workflow, command.stageId, command.artifact, command.updatedAt),
+      };
+    case "update-artifact":
+      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
+      if (workflow.stages[command.stageId].status === "accepted") {
+        return { ok: false, reason: "stage-not-editable" };
+      }
+      return {
+        ok: true,
+        workflow: updateStageArtifactDraft(workflow, command.stageId, command.patch, command.updatedAt),
+      };
+    case "accept-stage": {
+      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
+      const stage = workflow.stages[command.stageId];
+      if (stage.status === "accepted") return { ok: false, reason: "stage-already-accepted" };
+      if (stage.generatedAt === null || !isCompleteStageArtifact(command.stageId, stage.artifact)) {
+        return { ok: false, reason: "stage-artifact-incomplete" };
+      }
+      return { ok: true, workflow: acceptStageArtifact(workflow, command.stageId) };
+    }
+    case "reset-stage": {
+      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
+      if (workflow.stages[command.stageId].status !== "accepted") {
+        return { ok: false, reason: "stage-not-accepted" };
+      }
+      return { ok: true, workflow: resetWorkflowFromStage(workflow, command.stageId) };
+    }
+    case "complete-workflow":
+      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
+      if (workflow.stages["image-planning"].status !== "accepted") {
+        return { ok: false, reason: "image-planning-not-accepted" };
+      }
+      return { ok: true, workflow: completeWorkflow(workflow, command.articleId) };
+  }
 }
 
 export function getWorkflowProgress(workflow: WritingWorkflowSnapshot) {
@@ -134,7 +198,7 @@ export function canSelectWorkspace(workflow: WritingWorkflowSnapshot, stageId: S
   return stageId === workflow.currentStageId || workflow.stages[stageId].status === "accepted";
 }
 
-export function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
+function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
   if (workflow.status === "completed") return workflow;
   const resetIndex = studioStageIds.indexOf(stageId);
 
@@ -151,7 +215,7 @@ export function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageI
   };
 }
 
-export function updateStageArtifactDraft<K extends StudioStageId>(
+function updateStageArtifactDraft<K extends StudioStageId>(
   workflow: WritingWorkflowSnapshot,
   stageId: K,
   patch: Partial<StageArtifactMap[K]>,
@@ -173,7 +237,7 @@ export function updateStageArtifactDraft<K extends StudioStageId>(
   };
 }
 
-export function proposeStageArtifact<K extends StudioStageId>(
+function proposeStageArtifact<K extends StudioStageId>(
   workflow: WritingWorkflowSnapshot,
   stageId: K,
   artifact: StageArtifactMap[K],
@@ -196,7 +260,7 @@ export function proposeStageArtifact<K extends StudioStageId>(
   };
 }
 
-export function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
+function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
   const stage = workflow.stages[stageId];
   if (stage.status === "accepted" || stage.generatedAt === null || !isCompleteStageArtifact(stageId, stage.artifact)) return workflow;
   const nextStageId = getNextStageId(stageId);
@@ -216,14 +280,6 @@ export function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: 
         : {}),
     },
   };
-}
-
-export function resolveStageAcceptance(
-  workflow: WritingWorkflowSnapshot,
-  stageId: StudioStageId,
-  decision: "cancel" | "confirm",
-): WritingWorkflowSnapshot {
-  return decision === "confirm" ? acceptStageArtifact(workflow, stageId) : workflow;
 }
 
 export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false, stageId?: StudioStageId): StageAction {
@@ -273,7 +329,7 @@ function isCompleteStageArtifact(stageId: StudioStageId, artifact: StageArtifact
   }
 }
 
-export function completeWorkflow(workflow: WritingWorkflowSnapshot, articleId: string): WritingWorkflowSnapshot {
+function completeWorkflow(workflow: WritingWorkflowSnapshot, articleId: string): WritingWorkflowSnapshot {
   if (workflow.status === "completed" || workflow.stages["image-planning"].status !== "accepted") return workflow;
   return { ...workflow, status: "completed", articleId };
 }

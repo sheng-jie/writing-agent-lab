@@ -13,7 +13,7 @@ export function StudioWorkspace() {
   const controller = useStudioState();
 
   return (
-    <main className={cn("fd-studio", controller.collapsed && "rail-collapsed")}>
+    <main className={cn("fd-studio", controller.ui.collapsed && "rail-collapsed")}>
       <a className="studio-skip" href="#studio-main">
         跳到工作区
       </a>

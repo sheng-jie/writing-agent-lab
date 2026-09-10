@@ -1,4 +1,4 @@
-import type { StudioStep } from "./studio.types";
+import type { StudioStep } from "./studio.controller";
 import type { StudioStageId } from "./studio.workflow";
 
 export const studioAgentByStage: Record<StudioStageId, string> = {
