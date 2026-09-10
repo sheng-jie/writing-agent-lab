@@ -1,4 +1,4 @@
-import type { TopicGenerationArtifact } from "../../studio.workflow";
+import type { TopicGenerationArtifact } from "../../workflow/studio-workflow";
 
 export function canAcceptTopicGeneration(artifact: TopicGenerationArtifact | null) {
   return artifact !== null

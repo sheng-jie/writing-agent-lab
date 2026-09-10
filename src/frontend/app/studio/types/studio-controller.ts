@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import type { StageAction, StageArtifactMap, StudioStageId, WritingWorkflowSnapshot } from "./studio.workflow";
+import type { StageAction, StageArtifactMap, StudioStageId, WritingWorkflowSnapshot } from "../workflow/studio-workflow";
 
 export type StudioStep = {
   id: StudioStageId;

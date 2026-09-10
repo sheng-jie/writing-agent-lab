@@ -5,8 +5,8 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
-import type { StageWorkspaceAdapter } from "../workspace.adapter";
-import { StudioStepCopilotTools } from "../StudioStepAgent";
+import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
+import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
 import { canAcceptOutlinePlanning } from "./outlinePlanning.rules";
 
 export function OutlinePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"outline-planning"> }) {

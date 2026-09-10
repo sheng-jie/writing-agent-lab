@@ -1,6 +1,6 @@
 "use client";
 
-import type { WritingIntentArtifact } from "../../studio.workflow";
+import type { WritingIntentArtifact } from "../../workflow/studio-workflow";
 
 export type Phase = "initial" | "identifying" | "card";
 

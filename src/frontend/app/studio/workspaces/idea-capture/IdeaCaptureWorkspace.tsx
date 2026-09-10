@@ -10,7 +10,7 @@ import { IdeaCaptureIntentPanel } from "./IdeaCaptureIntentPanel";
 import { IdeaCaptureCopilotTools } from "./IdeaCaptureCopilotTools";
 import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
 
-import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
 import { canAcceptWritingIntent } from "./ideaCapture.rules";
 
 export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"idea-capture"> }) {

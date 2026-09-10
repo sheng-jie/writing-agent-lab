@@ -3,8 +3,8 @@
 import { CopilotKit } from "@copilotkit/react-core/v2";
 
 import "./studio.css";
-import { studioAgentByStage } from "./studio.config";
-import { StudioWorkspace } from "./StudioWorkspace";
+import { studioAgentByStage } from "./config/studio-config";
+import { StudioWorkbenchShell } from "./components/StudioWorkbenchShell";
 
 export default function StudioPage() {
   return (
@@ -14,7 +14,7 @@ export default function StudioPage() {
       useSingleEndpoint
       showDevConsole={process.env.NODE_ENV !== "production"}
     >
-      <StudioWorkspace />
+      <StudioWorkbenchShell />
     </CopilotKit>
   );
 }

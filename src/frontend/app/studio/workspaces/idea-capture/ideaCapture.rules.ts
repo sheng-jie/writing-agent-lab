@@ -1,4 +1,4 @@
-import type { WritingIntentArtifact } from "../../studio.workflow";
+import type { WritingIntentArtifact } from "../../workflow/studio-workflow";
 
 export function canAcceptWritingIntent(artifact: WritingIntentArtifact | null) {
   return artifact !== null

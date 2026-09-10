@@ -4,8 +4,8 @@ import { ImagePlanningWorkspace } from "./image-planning";
 import { OutlinePlanningWorkspace } from "./outline-planning";
 import { PolishingWorkspace } from "./polishing";
 import { TopicGenerationWorkspace } from "./topic-generation";
-import { createStageWorkspaceAdapter } from "./workspace.adapter";
-import type { StudioController } from "../studio.controller";
+import { createStageWorkspaceAdapter } from "./stageWorkspace.adapter";
+import type { StudioController } from "../types/studio-controller";
 
 type WorkspaceProps = { controller: StudioController };
 

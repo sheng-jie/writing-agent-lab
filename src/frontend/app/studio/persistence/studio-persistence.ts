@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { studioStageIds, type WritingWorkflowSnapshot } from "./studio.workflow";
-import { stageArtifactSchemas } from "./studio.artifact-schemas";
+import { studioStageIds, type WritingWorkflowSnapshot } from "../workflow/studio-workflow";
+import { stageArtifactSchemas } from "../workflow/studio-artifact-schemas";
 
 export const studioProgressStorageKey = "flowdraft-studio-progress";
 const studioProgressVersion = 2 as const;

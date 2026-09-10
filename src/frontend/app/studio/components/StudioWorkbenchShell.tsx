@@ -2,14 +2,14 @@
 
 import { cn } from "@/lib/utils";
 
-import { StudioActionbar } from "./components/StudioActionbar";
-import { StudioFlowRail } from "./components/StudioFlowRail";
-import { StudioToast } from "./components/StudioToast";
-import { StudioTopbar } from "./components/StudioTopbar";
-import { StepWorkspace } from "./workspaces/StepWorkspace";
-import { useStudioState } from "./useStudioState";
+import { StudioActionbar } from "./StudioActionbar";
+import { StudioFlowRail } from "./StudioFlowRail";
+import { StudioToast } from "./StudioToast";
+import { StudioTopbar } from "./StudioTopbar";
+import { StepWorkspace } from "../workspaces/StepWorkspace";
+import { useStudioState } from "../hooks/useStudioState";
 
-export function StudioWorkspace() {
+export function StudioWorkbenchShell() {
   const controller = useStudioState();
 
   return (

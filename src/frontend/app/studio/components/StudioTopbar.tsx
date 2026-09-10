@@ -1,6 +1,6 @@
 "use client";
 
-import type { StudioController } from "../studio.controller";
+import type { StudioController } from "../types/studio-controller";
 
 export function StudioTopbar({ controller }: { controller: StudioController }) {
   const { activeStep } = controller.workspace;

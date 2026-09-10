@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import { studioAgentByStage, studioSteps } from "./studio.config";
+import { studioAgentByStage, studioSteps } from "../config/studio-config";
 import {
   loadStudioProgress,
   parseStudioProgress,
   saveStudioProgress,
   studioProgressStorageKey,
   type StudioProgressSnapshot,
-} from "./studio.persistence";
+} from "../persistence/studio-persistence";
 import {
   canSelectWorkspace,
   createInitialWorkflow,
@@ -23,8 +23,8 @@ import {
   type WorkflowCommand,
   type StageArtifactMap,
   type StudioStageId,
-} from "./studio.workflow";
-import type { StudioController } from "./studio.controller";
+} from "../workflow/studio-workflow";
+import type { StudioController } from "../types/studio-controller";
 import { useStudioProgressState } from "./useStudioProgressState";
 import { useStudioUiState } from "./useStudioUiState";
 import { useStudioWorkflowState } from "./useStudioWorkflowState";

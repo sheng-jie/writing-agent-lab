@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { StudioConfirmation, StudioUiState } from "./studio.controller";
+import type { StudioConfirmation, StudioUiState } from "../types/studio-controller";
 
 const initialUiState: StudioUiState = {
   activeWorkspaceId: "idea-capture",

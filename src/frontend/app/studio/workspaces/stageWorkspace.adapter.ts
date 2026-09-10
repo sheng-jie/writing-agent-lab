@@ -1,8 +1,8 @@
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import { studioAgentByStage } from "../studio.config";
-import type { StudioController, StudioStep } from "../studio.controller";
-import type { StageArtifactMap, StageRecord, StudioStageId } from "../studio.workflow";
+import { studioAgentByStage } from "../config/studio-config";
+import type { StudioController, StudioStep } from "../types/studio-controller";
+import type { StageArtifactMap, StageRecord, StudioStageId } from "../workflow/studio-workflow";
 
 export type StageWorkspaceAdapter<K extends StudioStageId> = {
   step: StudioStep;

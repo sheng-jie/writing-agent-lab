@@ -1,6 +1,6 @@
 "use client";
 
-import { studioSteps } from "../studio.config";
+import { studioSteps } from "../config/studio-config";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getStageStateLabel } from "../studio.workflow";
-import type { StudioController } from "../studio.controller";
+import { getStageStateLabel } from "../workflow/studio-workflow";
+import type { StudioController } from "../types/studio-controller";
 
 export function StudioActionbar({ controller }: { controller: StudioController }) {
   const { activeStep, activeWorkspaceId } = controller.workspace;

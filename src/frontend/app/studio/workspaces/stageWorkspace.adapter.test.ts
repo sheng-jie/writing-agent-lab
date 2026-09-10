@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createStageWorkspaceAdapter } from "./workspace.adapter";
-import type { StudioController } from "../studio.controller";
-import { createInitialWorkflow, type StageArtifactMap, type StudioStageId } from "../studio.workflow";
+import { createStageWorkspaceAdapter } from "./stageWorkspace.adapter";
+import type { StudioController } from "../types/studio-controller";
+import { createInitialWorkflow, type StageArtifactMap, type StudioStageId } from "../workflow/studio-workflow";
 
 function createController(): StudioController {
   const workflow = createInitialWorkflow();

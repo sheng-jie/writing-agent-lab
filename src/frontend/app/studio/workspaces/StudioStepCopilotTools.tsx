@@ -1,10 +1,10 @@
 "use client";
 
 import { useFrontendTool } from "@copilotkit/react-core/v2";
-import { stageArtifactSchemas } from "../studio.artifact-schemas";
+import { stageArtifactSchemas } from "../workflow/studio-artifact-schemas";
 
-import type { StageWorkspaceAdapter } from "./workspace.adapter";
-import type { StageArtifactMap, StudioStageId } from "../studio.workflow";
+import type { StageWorkspaceAdapter } from "./stageWorkspace.adapter";
+import type { StageArtifactMap, StudioStageId } from "../workflow/studio-workflow";
 
 const toolConfigs = {
   "topic-generation": { name: "generateTopicCandidates", description: "Generate the complete topic candidate list. Leave selectedCandidateId empty until the user chooses." },

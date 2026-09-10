@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
-import type { StudioProgressSnapshot } from "./studio.persistence";
+import type { StudioProgressSnapshot } from "../persistence/studio-persistence";
 
 export function useStudioProgressState() {
   const [agentRunning, setAgentRunning] = useState(false);

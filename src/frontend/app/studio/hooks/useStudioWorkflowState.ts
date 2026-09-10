@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { createInitialWorkflow } from "./studio.workflow";
+import { createInitialWorkflow } from "../workflow/studio-workflow";
 
 export function useStudioWorkflowState() {
   return useState(createInitialWorkflow);

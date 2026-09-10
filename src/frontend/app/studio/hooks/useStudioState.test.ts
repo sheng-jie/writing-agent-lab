@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useStudioState } from "./useStudioState";
-import type { StageArtifactMap, StudioStageId } from "./studio.workflow";
+import type { StageArtifactMap, StudioStageId } from "../workflow/studio-workflow";
 
 const writingIntent: StageArtifactMap["idea-capture"] = {
   rawIdea: "想写 Agent 产品工程",

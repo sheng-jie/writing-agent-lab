@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { StageArtifactMap, StudioStageId } from "./studio.workflow";
+import type { StageArtifactMap, StudioStageId } from "./studio-workflow";
 
 const writingIntentSchema = z.object({
   rawIdea: z.string().min(1),

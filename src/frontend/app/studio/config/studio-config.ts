@@ -1,5 +1,5 @@
-import type { StudioStep } from "./studio.controller";
-import type { StudioStageId } from "./studio.workflow";
+import type { StudioStep } from "../types/studio-controller";
+import type { StudioStageId } from "../workflow/studio-workflow";
 
 export const studioAgentByStage: Record<StudioStageId, string> = {
   "idea-capture": "ideaCaptureAgent",

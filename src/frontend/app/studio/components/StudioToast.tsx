@@ -1,4 +1,4 @@
-import type { StudioController } from "../studio.controller";
+import type { StudioController } from "../types/studio-controller";
 
 export function StudioToast({ controller }: { controller: StudioController }) {
   if (!controller.ui.toast.visible) return null;

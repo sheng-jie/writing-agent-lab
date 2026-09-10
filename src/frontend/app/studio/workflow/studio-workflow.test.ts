@@ -8,7 +8,7 @@ import {
   getWorkflowProgress,
   studioStageIds,
   type WritingIntentArtifact,
-} from "./studio.workflow";
+} from "./studio-workflow";
 
 const writingIntent: WritingIntentArtifact = {
   rawIdea: "想写 Agent 产品工程",

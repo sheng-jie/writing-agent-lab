@@ -5,9 +5,9 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
-import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
 import { canAcceptImagePlanning } from "./imagePlanning.rules";
-import { StudioStepCopilotTools } from "../StudioStepAgent";
+import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
 
 export function ImagePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"image-planning"> }) {
   useEffect(() => {

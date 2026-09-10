@@ -3,8 +3,8 @@
 import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useEffect, useRef } from "react";
 
-import type { StageWorkspaceAdapter } from "../workspace.adapter";
-import { StudioStepCopilotTools } from "../StudioStepAgent";
+import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
+import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
 import { canAcceptTopicGeneration } from "./topicGeneration.rules";
 
 export function TopicGenerationWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"topic-generation"> }) {

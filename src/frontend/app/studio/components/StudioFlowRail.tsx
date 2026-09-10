@@ -4,9 +4,9 @@ import { ChevronLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { studioSteps } from "../studio.config";
-import { canSelectWorkspace, getStageStateLabel } from "../studio.workflow";
-import type { StudioController } from "../studio.controller";
+import { studioSteps } from "../config/studio-config";
+import { canSelectWorkspace, getStageStateLabel } from "../workflow/studio-workflow";
+import type { StudioController } from "../types/studio-controller";
 
 export function StudioFlowRail({ controller }: { controller: StudioController }) {
   return (
