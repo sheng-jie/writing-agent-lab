@@ -6,7 +6,6 @@ import type { AgentMessage } from "@/components/agent/useAgentChat";
 
 import { studioAgentByStage, studioSteps } from "./studio.config";
 import {
-  clearStudioProgress,
   loadStudioProgress,
   parseStudioProgress,
   saveStudioProgress,
@@ -188,10 +187,11 @@ export function useStudioState(): StudioController {
   }
 
   function applyRestartIdeaCapture() {
-    clearStudioProgress();
+    const nextWorkflow = createInitialWorkflow();
+    if (!persistProgress(nextWorkflow, "idea-capture", {})) return;
     setAgentMessages({});
     triggerResetSignal();
-    setWorkflow(createInitialWorkflow());
+    setWorkflow(nextWorkflow);
     setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
     notify("已重新开始写作意图识别");
   }
@@ -280,13 +280,26 @@ export function useStudioState(): StudioController {
   function applyStageReset(stageId: StudioStageId) {
     const resetIndex = studioStageIds.indexOf(stageId);
     const resetAgentIds = new Set(studioStageIds.slice(resetIndex).map((id) => studioAgentByStage[id]));
-    setAgentMessages((current) => Object.fromEntries(Object.entries(current).filter(([agentId]) => !resetAgentIds.has(agentId))));
-    triggerResetSignal();
     const result = executeWorkflowCommand(workflow, { type: "reset-stage", stageId });
     if (!result.ok) return;
+    const nextAgentMessages = Object.fromEntries(Object.entries(agentMessages).filter(([agentId]) => !resetAgentIds.has(agentId)));
+    if (!persistProgress(result.workflow, stageId, nextAgentMessages)) return;
+    setAgentMessages(nextAgentMessages);
+    triggerResetSignal();
     setWorkflow(result.workflow);
     setUi((current) => ({ ...current, activeWorkspaceId: stageId }));
     notify("当前及后续流程产物已清空");
+  }
+
+  function persistProgress(nextWorkflow: typeof workflow, activeWorkspaceId: StudioStageId, nextAgentMessages: Record<string, AgentMessage[]>) {
+    try {
+      saveStudioProgress({ workflow: nextWorkflow, activeWorkspaceId, agentMessages: nextAgentMessages });
+      setSaveWarning(null);
+      return true;
+    } catch {
+      setSaveWarning("进度保存失败，尚未提交当前操作");
+      return false;
+    }
   }
 
   async function saveArticle() {
@@ -305,7 +318,8 @@ export function useStudioState(): StudioController {
       if (!response.ok) throw new Error("Article save failed");
       const article = await response.json() as { id: string };
       const result = executeWorkflowCommand(workflow, { type: "complete-workflow", articleId: article.id });
-      if (result.ok) setWorkflow(result.workflow);
+      if (!result.ok || !persistProgress(result.workflow, ui.activeWorkspaceId, agentMessages)) return;
+      setWorkflow(result.workflow);
       notify("文章已保存");
     } catch {
       setSaveWarning("文章保存失败，请重试");
@@ -314,8 +328,9 @@ export function useStudioState(): StudioController {
 
   function startNewWorkflow() {
     if (workflow.status !== "completed") return;
-    clearStudioProgress();
-    setWorkflow(createInitialWorkflow());
+    const nextWorkflow = createInitialWorkflow();
+    if (!persistProgress(nextWorkflow, "idea-capture", {})) return;
+    setWorkflow(nextWorkflow);
     setAgentMessages({});
     triggerResetSignal();
     setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));

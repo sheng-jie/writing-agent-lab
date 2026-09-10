@@ -19,7 +19,8 @@ type GeneratedStageId = Exclude<keyof typeof stageArtifactSchemas, "idea-capture
 export function StudioStepCopilotTools<K extends GeneratedStageId>({ workspace }: {
   workspace: StageWorkspaceAdapter<K>;
 }) {
-  const { stageId, agentId } = workspace;
+  const { agentId } = workspace;
+  const stageId = workspace.step.id as K;
   const config = toolConfigs[stageId];
   const parameters = stageArtifactSchemas[stageId] as unknown as import("zod").ZodType<StageArtifactMap[K]>;
 

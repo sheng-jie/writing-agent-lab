@@ -11,6 +11,7 @@ function createController(): StudioController {
     workflow: {
       snapshot: workflow,
       stageAction: { kind: "blocked", label: "下一步", hint: "" },
+      reportStageComplete: vi.fn(),
       articleSaved: false,
       getStageArtifact: <K extends StudioStageId>(stageId: K) => workflow.stages[stageId].artifact as StageArtifactMap[K] | null,
       updateStageArtifact: vi.fn(() => true),
@@ -56,7 +57,7 @@ function createController(): StudioController {
 describe("阶段工作区 adapter", () => {
   it("把领域命令和 Agent 会话绑定到当前阶段", () => {
     const controller = createController();
-    const workspace = createStageWorkspaceAdapter(controller, "topic-generation");
+    const workspace = createStageWorkspaceAdapter(controller, "topic-generation", vi.fn());
     const artifact: StageArtifactMap["topic-generation"] = {
       candidates: [{ id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" }],
       selectedCandidateId: "topic-1",
@@ -67,6 +68,7 @@ describe("阶段工作区 adapter", () => {
     workspace.agent.getMessages();
     workspace.agent.updateMessages([{ id: "m1", role: "user", content: "旧对话" }]);
 
+    expect("stageId" in workspace).toBe(false);
     expect(controller.workflow.updateStageArtifact).toHaveBeenCalledWith("topic-generation", { selectedCandidateId: "topic-1" });
     expect(controller.workflow.generateStageArtifact).toHaveBeenCalledWith("topic-generation", artifact);
     expect(controller.progress.getAgentMessages).toHaveBeenCalledWith("studioTopicAgent");

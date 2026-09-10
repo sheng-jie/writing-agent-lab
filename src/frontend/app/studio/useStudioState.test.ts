@@ -122,6 +122,36 @@ describe("工作台当前写作工作流控制器", () => {
     expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未进入下一阶段");
   });
 
+  it("重置保存失败时保留原工作流和 Agent 消息", () => {
+    const { result } = renderHook(() => useStudioState());
+    generateAllStages(result);
+    act(() => result.current.progress.updateAgentMessages("studioTopicAgent", [{ id: "1", role: "user", content: "保留" }]));
+    act(() => result.current.workspace.selectWorkspace("topic-generation"));
+    act(() => result.current.workflow.resetStage());
+    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
+
+    act(() => result.current.ui.confirmPendingAction());
+
+    expect(result.current.workflow.snapshot.stages["topic-generation"].status).toBe("accepted");
+    expect(result.current.progress.getAgentMessages("studioTopicAgent")).toEqual([{ id: "1", role: "user", content: "保留" }]);
+    expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未提交当前操作");
+  });
+
+  it("重新开始保存失败时不清空工作流", () => {
+    const { result } = renderHook(() => useStudioState());
+    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    acceptCurrentStage(result);
+    act(() => result.current.workspace.selectWorkspace("idea-capture"));
+    act(() => result.current.workflow.restartIdeaCapture());
+    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
+
+    act(() => result.current.ui.confirmPendingAction());
+
+    expect(result.current.workflow.snapshot.stages["idea-capture"].status).toBe("accepted");
+    expect(result.current.workflow.snapshot.currentStageId).toBe("topic-generation");
+    expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未提交当前操作");
+  });
+
   it("繁忙时延迟载入其他标签页的新进度", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
@@ -212,5 +242,34 @@ describe("工作台当前写作工作流控制器", () => {
     expect(result.current.workflow.snapshot.status).toBe("active");
     expect(result.current.workflow.snapshot.stages["image-planning"].status).toBe("accepted");
     expect(result.current.progress.saveWarning).toBe("文章保存失败，请重试");
+  });
+
+  it("完成工作流的进度保存失败时不提交完成状态", async () => {
+    const { result } = renderHook(() => useStudioState());
+    generateAllStages(result);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "article-1" }) }));
+    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
+
+    await act(async () => result.current.workflow.saveArticle());
+
+    expect(result.current.workflow.snapshot.status).toBe("active");
+    expect(result.current.workflow.snapshot.articleId).toBeNull();
+    expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未提交当前操作");
+  });
+
+  it("恢复整体快照中的活动工作区和 Agent 消息", () => {
+    const first = renderHook(() => useStudioState());
+    act(() => first.result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    acceptCurrentStage(first.result);
+    const snapshot = JSON.parse(localStorage.getItem(progressStorageKey)!);
+    snapshot.activeWorkspaceId = "topic-generation";
+    snapshot.agentMessages = { studioTopicAgent: [{ id: "m1", role: "user", content: "已恢复" }] };
+    localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
+    first.unmount();
+
+    const restored = renderHook(() => useStudioState());
+
+    expect(restored.result.current.workspace.activeWorkspaceId).toBe("topic-generation");
+    expect(restored.result.current.progress.getAgentMessages("studioTopicAgent")).toEqual([{ id: "m1", role: "user", content: "已恢复" }]);
   });
 });

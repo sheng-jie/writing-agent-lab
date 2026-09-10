@@ -5,7 +5,6 @@ import type { StudioController, StudioStep } from "../studio.controller";
 import type { StageArtifactMap, StageRecord, StudioStageId } from "../studio.workflow";
 
 export type StageWorkspaceAdapter<K extends StudioStageId> = {
-  stageId: K;
   step: StudioStep;
   agentId: string;
   stage: StageRecord<StageArtifactMap[K]>;
@@ -36,7 +35,6 @@ export function createStageWorkspaceAdapter<K extends StudioStageId>(
   const stage = controller.workflow.snapshot.stages[stageId];
 
   return {
-    stageId,
     step: controller.workspace.activeStep,
     agentId,
     stage,
