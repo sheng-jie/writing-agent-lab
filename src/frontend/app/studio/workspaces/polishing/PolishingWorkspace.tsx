@@ -5,9 +5,13 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import { canAcceptPolishing } from "./polishing.rules";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function PolishingWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"polishing"> }) {
+  useEffect(() => {
+    workspace.reportComplete(canAcceptPolishing(workspace.artifact));
+  }, [workspace]);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 

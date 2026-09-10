@@ -27,6 +27,7 @@ export type StudioController = {
   workflow: {
     snapshot: WritingWorkflowSnapshot;
     stageAction: StageAction;
+    reportStageComplete: (stageId: StudioStageId, complete: boolean) => void;
     articleSaved: boolean;
     getStageArtifact: <K extends StudioStageId>(stageId: K) => StageArtifactMap[K] | null;
     updateStageArtifact: <K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) => boolean;

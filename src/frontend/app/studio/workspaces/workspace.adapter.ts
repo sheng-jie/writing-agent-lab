@@ -12,6 +12,7 @@ export type StageWorkspaceAdapter<K extends StudioStageId> = {
   artifact: StageArtifactMap[K] | null;
   resetKey: number;
   readOnly: boolean;
+  reportComplete: (complete: boolean) => void;
   notify: (message: string) => void;
   updateArtifact: (patch: Partial<StageArtifactMap[K]>) => boolean;
   generateArtifact: (artifact: StageArtifactMap[K]) => boolean;
@@ -29,6 +30,7 @@ export type StageWorkspaceAdapter<K extends StudioStageId> = {
 export function createStageWorkspaceAdapter<K extends StudioStageId>(
   controller: StudioController,
   stageId: K,
+  reportComplete: (complete: boolean) => void,
 ): StageWorkspaceAdapter<K> {
   const agentId = studioAgentByStage[stageId];
   const stage = controller.workflow.snapshot.stages[stageId];
@@ -40,6 +42,7 @@ export function createStageWorkspaceAdapter<K extends StudioStageId>(
     stage,
     artifact: controller.workflow.getStageArtifact(stageId),
     readOnly: controller.workflow.snapshot.status === "completed" || stage.status === "accepted",
+    reportComplete,
     notify: controller.ui.notify,
     updateArtifact: (patch) => controller.workflow.updateStageArtifact(stageId, patch),
     generateArtifact: (artifact) => controller.workflow.generateStageArtifact(stageId, artifact),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { AgentMessage } from "@/components/agent/useAgentChat";
 
@@ -42,11 +42,13 @@ export function useStudioState(): StudioController {
     progressHydrated, setProgressHydrated, agentMessages, setAgentMessages,
     agentResetRef, skipNextSaveRef, registerAgentReset,
   } = useStudioProgressState();
+  const [stageCompletion, setStageCompletion] = useState<Partial<Record<StudioStageId, boolean>>>({});
   const externallyBusyRef = useRef(false);
   const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
   externallyBusyRef.current = agentRunning || agentDraftActive;
+  const activeStageComplete = stageCompletion[ui.activeWorkspaceId] ?? false;
   const stageAction = progressHydrated
-    ? getStageAction(workflow.stages[ui.activeWorkspaceId], agentRunning, true, ui.activeWorkspaceId)
+    ? getStageAction(workflow.stages[ui.activeWorkspaceId], agentRunning, true, activeStageComplete)
     : { kind: "blocked" as const, label: "下一步" as const, hint: "正在恢复上次进度。" };
 
   useEffect(() => {
@@ -131,6 +133,10 @@ export function useStudioState(): StudioController {
     return workflow.stages[stageId].artifact;
   }
 
+  function reportStageComplete(stageId: StudioStageId, complete: boolean) {
+    setStageCompletion((current) => current[stageId] === complete ? current : { ...current, [stageId]: complete });
+  }
+
   function updateStageArtifact<K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) {
     const command: WorkflowCommandFor<K> = { type: "update-artifact", stageId, patch, updatedAt: new Date().toISOString() };
     const result = executeWorkflowCommand(workflow, command as WorkflowCommand);
@@ -209,7 +215,7 @@ export function useStudioState(): StudioController {
 
   function runStageAction() {
     const stageId = ui.activeWorkspaceId;
-    const action = getStageAction(workflow.stages[stageId], agentRunning, true, stageId);
+    const action = getStageAction(workflow.stages[stageId], agentRunning, true, stageCompletion[stageId] ?? false);
     if (action.kind === "completed") {
       const nextStageId = getNextStageId(stageId);
       if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
@@ -231,7 +237,11 @@ export function useStudioState(): StudioController {
   }
 
   function acceptCurrentStage(stageId: StudioStageId) {
-    const result = executeWorkflowCommand(workflow, { type: "accept-stage", stageId });
+    const result = executeWorkflowCommand(workflow, {
+      type: "accept-stage",
+      stageId,
+      complete: stageCompletion[stageId] ?? false,
+    });
     if (!result.ok) return false;
     const acceptedWorkflow = result.workflow;
     const nextStageId = getNextStageId(stageId);
@@ -326,6 +336,7 @@ export function useStudioState(): StudioController {
     workflow: {
       snapshot: workflow,
       stageAction,
+      reportStageComplete,
       articleSaved: workflow.status === "completed",
       getStageArtifact,
       updateStageArtifact,

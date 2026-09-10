@@ -89,7 +89,7 @@ export type WorkflowCommandFor<K extends StudioStageId> =
 
 export type WorkflowCommand =
   | { [K in StudioStageId]: WorkflowCommandFor<K> }[StudioStageId]
-  | { type: "accept-stage"; stageId: StudioStageId }
+  | { type: "accept-stage"; stageId: StudioStageId; complete: boolean }
   | { type: "reset-stage"; stageId: StudioStageId }
   | { type: "complete-workflow"; articleId: string };
 
@@ -159,7 +159,7 @@ export function executeWorkflowCommand(
       if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
       const stage = workflow.stages[command.stageId];
       if (stage.status === "accepted") return { ok: false, reason: "stage-already-accepted" };
-      if (stage.generatedAt === null || !isCompleteStageArtifact(command.stageId, stage.artifact)) {
+      if (stage.generatedAt === null || !command.complete) {
         return { ok: false, reason: "stage-artifact-incomplete" };
       }
       return { ok: true, workflow: acceptStageArtifact(workflow, command.stageId) };
@@ -262,7 +262,7 @@ function proposeStageArtifact<K extends StudioStageId>(
 
 function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioStageId): WritingWorkflowSnapshot {
   const stage = workflow.stages[stageId];
-  if (stage.status === "accepted" || stage.generatedAt === null || !isCompleteStageArtifact(stageId, stage.artifact)) return workflow;
+  if (stage.status === "accepted" || stage.generatedAt === null) return workflow;
   const nextStageId = getNextStageId(stageId);
 
   return {
@@ -282,15 +282,15 @@ function acceptStageArtifact(workflow: WritingWorkflowSnapshot, stageId: StudioS
   };
 }
 
-export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false, stageId?: StudioStageId): StageAction {
+export function getStageAction(stage: StageRecord, agentRunning = false, candidateRequired = false, stageComplete = false): StageAction {
   switch (stage.status) {
     case "pending":
       return { kind: "blocked", label: "下一步", hint: "请先完成前一阶段。" };
     case "in-progress":
-      if (agentRunning && hasStageContent(stage, candidateRequired, stageId)) {
+      if (agentRunning && hasStageContent(stage, candidateRequired, stageComplete)) {
         return { kind: "blocked", label: "下一步", hint: "Agent 处理完成后才能进入下一步。" };
       }
-      return hasStageContent(stage, candidateRequired, stageId)
+      return hasStageContent(stage, candidateRequired, stageComplete)
         ? { kind: "advance", label: "下一步", hint: "完成当前内容后，即可确认并继续。" }
         : { kind: "blocked", label: "下一步", hint: "请先完成当前阶段内容。" };
     case "accepted":
@@ -298,35 +298,9 @@ export function getStageAction(stage: StageRecord, agentRunning = false, candida
   }
 }
 
-function hasStageContent(stage: StageRecord, candidateRequired: boolean, stageId?: StudioStageId) {
+function hasStageContent(stage: StageRecord, candidateRequired: boolean, stageComplete: boolean) {
   if (candidateRequired && stage.generatedAt === null) return false;
-  return stage.updatedAt !== null && stage.artifact !== null && (!stageId || isCompleteStageArtifact(stageId, stage.artifact));
-}
-
-function isCompleteStageArtifact(stageId: StudioStageId, artifact: StageArtifact | null): boolean {
-  if (artifact === null) return false;
-  switch (stageId) {
-    case "idea-capture": {
-      const intent = artifact as WritingIntentArtifact;
-      return [intent.rawIdea, intent.topic, intent.audience, intent.purpose, intent.platform, intent.coreViewpoint, intent.contentBoundary]
-        .every((value) => value.trim().length > 0);
-    }
-    case "topic-generation": {
-      const topics = artifact as TopicGenerationArtifact;
-      return topics.candidates.length > 0 && topics.candidates.some((candidate) => candidate.id === topics.selectedCandidateId);
-    }
-    case "outline-planning": {
-      const outline = artifact as OutlineArtifact;
-      return outline.throughline.trim().length > 0 && outline.sections.length > 0;
-    }
-    case "drafting":
-    case "polishing":
-      return (artifact as DraftArtifact).content.trim().length > 0;
-    case "image-planning": {
-      const illustrated = artifact as ImagePlanningArtifact;
-      return illustrated.title.trim().length > 0 && illustrated.content.trim().length > 0;
-    }
-  }
+  return stage.updatedAt !== null && stage.artifact !== null && stageComplete;
 }
 
 function completeWorkflow(workflow: WritingWorkflowSnapshot, articleId: string): WritingWorkflowSnapshot {

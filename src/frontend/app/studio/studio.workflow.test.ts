@@ -23,7 +23,7 @@ const writingIntent: WritingIntentArtifact = {
 function acceptIdeaCapture() {
   const generated = executeWorkflowCommand(createInitialWorkflow(), { type: "propose-artifact", stageId: "idea-capture", artifact: writingIntent, updatedAt: "2026-08-08T00:00:00.000Z" });
   if (!generated.ok) throw new Error(generated.reason);
-  const accepted = executeWorkflowCommand(generated.workflow, { type: "accept-stage", stageId: "idea-capture" });
+  const accepted = executeWorkflowCommand(generated.workflow, { type: "accept-stage", stageId: "idea-capture", complete: true });
   if (!accepted.ok) throw new Error(accepted.reason);
   return accepted.workflow;
 }
@@ -58,8 +58,8 @@ describe("当前写作工作流", () => {
       updatedAt: "2026-08-08T00:00:00.000Z",
       upstreamRevision: null,
     });
-    expect(getStageAction(generated.stages["idea-capture"], false, true).kind).toBe("advance");
-    expect(getStageAction(generated.stages["idea-capture"], true, true).kind).toBe("blocked");
+    expect(getStageAction(generated.stages["idea-capture"], false, true, true).kind).toBe("advance");
+    expect(getStageAction(generated.stages["idea-capture"], true, true, true).kind).toBe("blocked");
   });
 
   it("局部修正更新同一个 artifact 并保留生成事实", () => {
@@ -78,15 +78,15 @@ describe("当前写作工作流", () => {
     if (!result.ok) throw new Error(result.reason);
     const updated = result.workflow;
 
-    expect(getStageAction(updated.stages["idea-capture"], false, true).kind).toBe("blocked");
-    const acceptance = executeWorkflowCommand(updated, { type: "accept-stage", stageId: "idea-capture" });
+    expect(getStageAction(updated.stages["idea-capture"], false, true, false).kind).toBe("blocked");
+    const acceptance = executeWorkflowCommand(updated, { type: "accept-stage", stageId: "idea-capture", complete: false });
     expect(acceptance).toEqual({ ok: false, reason: "stage-artifact-incomplete" });
   });
 
   it("接受当前 artifact 并原子进入下一阶段", () => {
     const proposed = executeWorkflowCommand(createInitialWorkflow(), { type: "propose-artifact", stageId: "idea-capture", artifact: writingIntent, updatedAt: "2026-08-08T00:00:00.000Z" });
     if (!proposed.ok) throw new Error(proposed.reason);
-    const acceptedResult = executeWorkflowCommand(proposed.workflow, { type: "accept-stage", stageId: "idea-capture" });
+    const acceptedResult = executeWorkflowCommand(proposed.workflow, { type: "accept-stage", stageId: "idea-capture", complete: true });
     if (!acceptedResult.ok) throw new Error(acceptedResult.reason);
     const accepted = acceptedResult.workflow;
 
@@ -109,7 +109,7 @@ describe("当前写作工作流", () => {
       selectedCandidateId: "topic-1",
     }, updatedAt: "2026-08-08T00:01:00.000Z" });
     if (!topicsResult.ok) throw new Error(topicsResult.reason);
-    const topicsAcceptedResult = executeWorkflowCommand(topicsResult.workflow, { type: "accept-stage", stageId: "topic-generation" });
+    const topicsAcceptedResult = executeWorkflowCommand(topicsResult.workflow, { type: "accept-stage", stageId: "topic-generation", complete: true });
     if (!topicsAcceptedResult.ok) throw new Error(topicsAcceptedResult.reason);
     const resetResult = executeWorkflowCommand(topicsAcceptedResult.workflow, { type: "reset-stage", stageId: "topic-generation" });
     if (!resetResult.ok) throw new Error(resetResult.reason);
@@ -130,13 +130,13 @@ describe("当前写作工作流", () => {
     if (!generatedResult.ok) throw new Error(generatedResult.reason);
     const generated = generatedResult.workflow;
 
-    expect(getStageAction(generated.stages["topic-generation"], false, true, "topic-generation").kind).toBe("blocked");
-    expect(executeWorkflowCommand(generated, { type: "accept-stage", stageId: "topic-generation" })).toEqual({ ok: false, reason: "stage-artifact-incomplete" });
+    expect(getStageAction(generated.stages["topic-generation"], false, true, false).kind).toBe("blocked");
+    expect(executeWorkflowCommand(generated, { type: "accept-stage", stageId: "topic-generation", complete: false })).toEqual({ ok: false, reason: "stage-artifact-incomplete" });
 
     const selectedResult = executeWorkflowCommand(generated, { type: "update-artifact", stageId: "topic-generation", patch: { selectedCandidateId: "topic-1" }, updatedAt: "2026-08-08T00:02:00.000Z" });
     if (!selectedResult.ok) throw new Error(selectedResult.reason);
     const selected = selectedResult.workflow;
-    expect(getStageAction(selected.stages["topic-generation"], false, true, "topic-generation").kind).toBe("advance");
+    expect(getStageAction(selected.stages["topic-generation"], false, true, true).kind).toBe("advance");
   });
 
   it("只有当前阶段和已接受阶段可以浏览", () => {
@@ -158,7 +158,7 @@ describe("当前写作工作流", () => {
     ] as const) {
       const proposed = executeWorkflowCommand(workflow, { type: "propose-artifact", stageId, artifact, updatedAt: "2026-08-08T00:00:00.000Z" } as never);
       if (!proposed.ok) throw new Error(proposed.reason);
-      const accepted = executeWorkflowCommand(proposed.workflow, { type: "accept-stage", stageId });
+      const accepted = executeWorkflowCommand(proposed.workflow, { type: "accept-stage", stageId, complete: true });
       if (!accepted.ok) throw new Error(accepted.reason);
       workflow = accepted.workflow;
     }

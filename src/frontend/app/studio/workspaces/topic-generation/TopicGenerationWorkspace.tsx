@@ -5,12 +5,17 @@ import { useEffect, useRef } from "react";
 
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
+import { canAcceptTopicGeneration } from "./topicGeneration.rules";
 
 export function TopicGenerationWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"topic-generation"> }) {
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
   const artifact = workspace.artifact;
   const readOnly = workspace.readOnly;
+
+  useEffect(() => {
+    workspace.reportComplete(canAcceptTopicGeneration(workspace.artifact));
+  }, [workspace]);
 
   useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
 

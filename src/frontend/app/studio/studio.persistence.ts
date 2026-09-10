@@ -1,42 +1,10 @@
 import { z } from "zod";
 
 import { studioStageIds, type WritingWorkflowSnapshot } from "./studio.workflow";
+import { stageArtifactSchemas } from "./studio.artifact-schemas";
 
 export const studioProgressStorageKey = "flowdraft-studio-progress";
 const studioProgressVersion = 2 as const;
-
-const writingIntentSchema = z.object({
-  rawIdea: z.string(),
-  topic: z.string(),
-  audience: z.string(),
-  purpose: z.string(),
-  platform: z.string(),
-  coreViewpoint: z.string(),
-  contentBoundary: z.string(),
-});
-const topicCandidateSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  audience: z.string(),
-  coreViewpoint: z.string(),
-  angle: z.string(),
-  excludedContent: z.string(),
-});
-const artifactSchemas = {
-  "idea-capture": writingIntentSchema,
-  "topic-generation": z.object({ candidates: z.array(topicCandidateSchema), selectedCandidateId: z.string() }),
-  "outline-planning": z.object({
-    throughline: z.string(),
-    sections: z.array(z.object({ title: z.string(), task: z.string(), materialGap: z.string() })),
-  }),
-  drafting: z.object({ content: z.string() }),
-  polishing: z.object({ content: z.string() }),
-  "image-planning": z.object({
-    title: z.string(),
-    content: z.string(),
-    illustrations: z.array(z.object({ placement: z.string(), purpose: z.string(), prompt: z.string(), url: z.string() })),
-  }),
-} as const;
 
 function stageRecordSchema(artifactSchema: z.ZodType) {
   return z.object({
@@ -54,12 +22,12 @@ const workflowSchema = z.object({
   status: z.enum(["active", "completed"]),
   articleId: z.string().nullable(),
   stages: z.object({
-    "idea-capture": stageRecordSchema(artifactSchemas["idea-capture"]),
-    "topic-generation": stageRecordSchema(artifactSchemas["topic-generation"]),
-    "outline-planning": stageRecordSchema(artifactSchemas["outline-planning"]),
-    drafting: stageRecordSchema(artifactSchemas.drafting),
-    polishing: stageRecordSchema(artifactSchemas.polishing),
-    "image-planning": stageRecordSchema(artifactSchemas["image-planning"]),
+    "idea-capture": stageRecordSchema(stageArtifactSchemas["idea-capture"]),
+    "topic-generation": stageRecordSchema(stageArtifactSchemas["topic-generation"]),
+    "outline-planning": stageRecordSchema(stageArtifactSchemas["outline-planning"]),
+    drafting: stageRecordSchema(stageArtifactSchemas.drafting),
+    polishing: stageRecordSchema(stageArtifactSchemas.polishing),
+    "image-planning": stageRecordSchema(stageArtifactSchemas["image-planning"]),
   }),
 });
 const snapshotSchema = z.object({

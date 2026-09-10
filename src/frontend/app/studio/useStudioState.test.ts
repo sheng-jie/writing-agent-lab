@@ -35,6 +35,7 @@ beforeAll(() => {
 });
 
 function acceptCurrentStage(result: ReturnType<typeof renderHook<ReturnType<typeof useStudioState>, unknown>>["result"]) {
+  act(() => result.current.workflow.reportStageComplete(result.current.workspace.activeWorkspaceId, true));
   act(() => result.current.workflow.runStageAction());
   act(() => result.current.ui.confirmPendingAction());
 }
@@ -42,7 +43,10 @@ function acceptCurrentStage(result: ReturnType<typeof renderHook<ReturnType<type
 function generateAllStages(result: ReturnType<typeof renderHook<ReturnType<typeof useStudioState>, unknown>>["result"]) {
   const stages: [StudioStageId, StageArtifactMap[StudioStageId]][] = [
     ["idea-capture", writingIntent],
-    ["topic-generation", { candidates: [{ id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" }], selectedCandidateId: "topic-1" }],
+    ["topic-generation", { candidates: [
+      { id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" },
+      { id: "topic-2", title: "另一个标题", audience: "另一类读者", coreViewpoint: "另一个观点", angle: "另一个角度", excludedContent: "另一个边界" },
+    ], selectedCandidateId: "topic-1" }],
     ["outline-planning", { throughline: "主线", sections: [{ title: "开场", task: "提出问题", materialGap: "" }] }],
     ["drafting", { content: "初稿" }],
     ["polishing", { content: "润色稿" }],
@@ -73,6 +77,7 @@ describe("工作台当前写作工作流控制器", () => {
   it("下一步先确认，确认后才原子推进并保存 v2 快照", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.reportStageComplete("idea-capture", true));
 
     act(() => result.current.workflow.runStageAction());
     expect(result.current.workspace.activeWorkspaceId).toBe("idea-capture");
@@ -107,6 +112,7 @@ describe("工作台当前写作工作流控制器", () => {
   it("首次接受保存失败时不推进", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
+    act(() => result.current.workflow.reportStageComplete("idea-capture", true));
     vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
 
     act(() => result.current.workflow.runStageAction());
@@ -122,13 +128,19 @@ describe("工作台当前写作工作流控制器", () => {
     acceptCurrentStage(result);
     act(() => result.current.progress.setAgentDraftActive(true));
     const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
-    external.workflow.stages["topic-generation"].artifact = { candidates: [], selectedCandidateId: "" };
+    external.workflow.stages["topic-generation"].artifact = {
+      candidates: [
+        { id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" },
+        { id: "topic-2", title: "另一个标题", audience: "另一类读者", coreViewpoint: "另一个观点", angle: "另一个角度", excludedContent: "另一个边界" },
+      ],
+      selectedCandidateId: "",
+    };
 
     act(() => window.dispatchEvent(new StorageEvent("storage", { key: progressStorageKey, newValue: JSON.stringify(external) })));
     expect(result.current.progress.externalProgressAvailable).toBe(true);
 
     act(() => result.current.progress.loadExternalProgress());
-    expect(result.current.workflow.getStageArtifact("topic-generation")).toEqual({ candidates: [], selectedCandidateId: "" });
+    expect(result.current.workflow.getStageArtifact("topic-generation")).toMatchObject({ candidates: [{ id: "topic-1" }, { id: "topic-2" }], selectedCandidateId: "" });
   });
 
   it("输入框有未发送草稿时延迟载入其他标签页的新进度", () => {
@@ -137,7 +149,13 @@ describe("工作台当前写作工作流控制器", () => {
     acceptCurrentStage(result);
     act(() => result.current.progress.setAgentDraftActive(true));
     const external = JSON.parse(localStorage.getItem(progressStorageKey)!);
-    external.workflow.stages["topic-generation"].artifact = { candidates: [], selectedCandidateId: "" };
+    external.workflow.stages["topic-generation"].artifact = {
+      candidates: [
+        { id: "topic-1", title: "标题", audience: "读者", coreViewpoint: "观点", angle: "角度", excludedContent: "边界" },
+        { id: "topic-2", title: "另一个标题", audience: "另一类读者", coreViewpoint: "另一个观点", angle: "另一个角度", excludedContent: "另一个边界" },
+      ],
+      selectedCandidateId: "",
+    };
 
     act(() => window.dispatchEvent(new StorageEvent("storage", { key: progressStorageKey, newValue: JSON.stringify(external) })));
 

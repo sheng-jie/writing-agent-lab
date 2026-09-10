@@ -5,9 +5,13 @@ import { useEffect, useRef } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import { canAcceptDrafting } from "./drafting.rules";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function DraftingWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"drafting"> }) {
+  useEffect(() => {
+    workspace.reportComplete(canAcceptDrafting(workspace.artifact));
+  }, [workspace]);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 

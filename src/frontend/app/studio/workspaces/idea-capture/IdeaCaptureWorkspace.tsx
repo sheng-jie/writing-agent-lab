@@ -11,6 +11,7 @@ import { IdeaCaptureCopilotTools } from "./IdeaCaptureCopilotTools";
 import type { IdeaCaptureState, WritingIntentDraft } from "./ideaCapture.types";
 
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import { canAcceptWritingIntent } from "./ideaCapture.rules";
 
 export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"idea-capture"> }) {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
@@ -20,6 +21,10 @@ export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceA
     ? "card"
     : hasWritingIntent(writingIntent) ? "identifying" : "initial";
   const prevPhaseRef = useRef(phase);
+
+  useEffect(() => {
+    workspace.reportComplete(canAcceptWritingIntent(workspace.artifact));
+  }, [workspace]);
 
   useEffect(() => {
     return workspace.agent.registerReset(() => agentPanelRef.current?.reset());

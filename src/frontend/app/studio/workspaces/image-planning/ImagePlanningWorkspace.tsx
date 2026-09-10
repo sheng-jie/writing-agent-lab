@@ -6,9 +6,13 @@ import { useEffect, useRef } from "react";
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
+import { canAcceptImagePlanning } from "./imagePlanning.rules";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
 
 export function ImagePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"image-planning"> }) {
+  useEffect(() => {
+    workspace.reportComplete(canAcceptImagePlanning(workspace.artifact));
+  }, [workspace]);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 

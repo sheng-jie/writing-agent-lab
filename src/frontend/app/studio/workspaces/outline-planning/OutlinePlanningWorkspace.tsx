@@ -7,10 +7,15 @@ import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
 import type { StageWorkspaceAdapter } from "../workspace.adapter";
 import { StudioStepCopilotTools } from "../StudioStepAgent";
+import { canAcceptOutlinePlanning } from "./outlinePlanning.rules";
 
 export function OutlinePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"outline-planning"> }) {
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
+
+  useEffect(() => {
+    workspace.reportComplete(canAcceptOutlinePlanning(workspace.artifact));
+  }, [workspace]);
 
   useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
 
