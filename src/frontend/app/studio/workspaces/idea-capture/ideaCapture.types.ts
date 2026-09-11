@@ -14,5 +14,4 @@ export type IdeaCaptureState = {
   notify: (text: string) => void;
   updateWritingIntent: (patch: Partial<WritingIntentDraft>) => string[];
   proposeWritingIntent: (candidate: Partial<WritingIntentDraft>) => void;
-  restart: () => void;
 };

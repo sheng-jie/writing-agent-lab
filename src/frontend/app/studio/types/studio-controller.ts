@@ -32,7 +32,6 @@ export type StudioController = {
     getStageArtifact: <K extends StudioStageId>(stageId: K) => StageArtifactMap[K] | null;
     updateStageArtifact: <K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) => boolean;
     generateStageArtifact: <K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K]) => boolean;
-    restartIdeaCapture: () => boolean;
     runStageAction: () => void;
     resetStage: () => void;
     saveArticle: () => Promise<void>;

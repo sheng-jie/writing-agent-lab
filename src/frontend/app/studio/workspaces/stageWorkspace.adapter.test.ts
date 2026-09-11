@@ -16,7 +16,6 @@ function createController(): StudioController {
       getStageArtifact: <K extends StudioStageId>(stageId: K) => workflow.stages[stageId].artifact as StageArtifactMap[K] | null,
       updateStageArtifact: vi.fn(() => true),
       generateStageArtifact: vi.fn(() => true),
-      restartIdeaCapture: vi.fn(() => true),
       runStageAction: vi.fn(),
       resetStage: vi.fn(),
       saveArticle: vi.fn(async () => undefined),

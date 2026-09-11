@@ -137,21 +137,6 @@ describe("工作台当前写作工作流控制器", () => {
     expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未提交当前操作");
   });
 
-  it("重新开始保存失败时不清空工作流", () => {
-    const { result } = renderHook(() => useStudioState());
-    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
-    acceptCurrentStage(result);
-    act(() => result.current.workspace.selectWorkspace("idea-capture"));
-    act(() => result.current.workflow.restartIdeaCapture());
-    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota exceeded", "QuotaExceededError"); });
-
-    act(() => result.current.ui.confirmPendingAction());
-
-    expect(result.current.workflow.snapshot.stages["idea-capture"].status).toBe("accepted");
-    expect(result.current.workflow.snapshot.currentStageId).toBe("topic-generation");
-    expect(result.current.progress.saveWarning).toBe("进度保存失败，尚未提交当前操作");
-  });
-
   it("繁忙时延迟载入其他标签页的新进度", () => {
     const { result } = renderHook(() => useStudioState());
     act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
@@ -203,20 +188,6 @@ describe("工作台当前写作工作流控制器", () => {
 
     expect(result.current.workspace.activeWorkspaceId).toBe("topic-generation");
     expect(result.current.ui.toast.text).toBe("Agent 处理完成后才能切换工作区");
-  });
-
-  it("重新开始捕捉想法清空全部阶段产物与 Agent 消息", () => {
-    const { result } = renderHook(() => useStudioState());
-    act(() => result.current.progress.updateAgentMessages("ideaCaptureAgent", [{ id: "1", role: "user", content: "旧对话" }]));
-    act(() => result.current.workflow.generateStageArtifact("idea-capture", writingIntent));
-    acceptCurrentStage(result);
-    act(() => result.current.workspace.selectWorkspace("idea-capture"));
-    act(() => result.current.workflow.restartIdeaCapture());
-    act(() => result.current.ui.confirmPendingAction());
-
-    expect(result.current.workflow.getStageArtifact("idea-capture")).toBeNull();
-    expect(result.current.workflow.getStageArtifact("topic-generation")).toBeNull();
-    expect(result.current.progress.getAgentMessages("ideaCaptureAgent")).toEqual([]);
   });
 
   it("文章保存成功后结束工作流并可开始新的工作流", async () => {

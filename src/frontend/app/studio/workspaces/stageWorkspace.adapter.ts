@@ -15,7 +15,6 @@ export type StageWorkspaceAdapter<K extends StudioStageId> = {
   notify: (message: string) => void;
   updateArtifact: (patch: Partial<StageArtifactMap[K]>) => boolean;
   generateArtifact: (artifact: StageArtifactMap[K]) => boolean;
-  restartIdeaCapture: () => boolean;
   agent: {
     restoreKey: number;
     setRunning: (running: boolean) => void;
@@ -44,7 +43,6 @@ export function createStageWorkspaceAdapter<K extends StudioStageId>(
     notify: controller.ui.notify,
     updateArtifact: (patch) => controller.workflow.updateStageArtifact(stageId, patch),
     generateArtifact: (artifact) => controller.workflow.generateStageArtifact(stageId, artifact),
-    restartIdeaCapture: controller.workflow.restartIdeaCapture,
     resetKey: controller.progress.resetKey,
     agent: {
       restoreKey: controller.progress.agentMessagesRestoreKey,

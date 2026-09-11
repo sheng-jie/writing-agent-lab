@@ -77,12 +77,6 @@ export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceA
       ...writingIntent,
       ...candidate,
     }),
-    restart: () => {
-      if (workspace.restartIdeaCapture()) {
-        setUpdatedCards(new Set());
-        agentPanelRef.current?.reset();
-      }
-    },
   };
 
   return (

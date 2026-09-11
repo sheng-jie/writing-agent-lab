@@ -165,35 +165,10 @@ export function useStudioState(): StudioController {
     setAgentMessages((current) => current[agentId] === messages ? current : { ...current, [agentId]: messages });
   }
 
-  function restartIdeaCapture() {
-    if (workflow.status === "completed") return false;
-    const hasProgress = studioStageIds.some((stageId) => workflow.stages[stageId].artifact !== null);
-    if (workflow.stages["idea-capture"].status === "accepted") {
-      requestConfirmation(
-        "重新开始写作意图识别",
-        hasProgress ? "重新开始会清空当前写作工作流的全部阶段产物。" : "当前写作意图识别结果将被清空。",
-        applyRestartIdeaCapture,
-      );
-      return false;
-    }
-    applyRestartIdeaCapture();
-    return true;
-  }
-
   function triggerResetSignal() {
     setAgentMessagesRestoreKey((current) => current + 1);
     setResetKey((current) => current + 1);
     agentResetRef.current?.();
-  }
-
-  function applyRestartIdeaCapture() {
-    const nextWorkflow = createInitialWorkflow();
-    if (!persistProgress(nextWorkflow, "idea-capture", {})) return;
-    setAgentMessages({});
-    triggerResetSignal();
-    setWorkflow(nextWorkflow);
-    setUi((current) => ({ ...current, activeWorkspaceId: "idea-capture" }));
-    notify("已重新开始写作意图识别");
   }
 
   function selectWorkspace(stageId: StudioStageId) {
@@ -356,7 +331,6 @@ export function useStudioState(): StudioController {
       getStageArtifact,
       updateStageArtifact,
       generateStageArtifact,
-      restartIdeaCapture,
       runStageAction,
       resetStage,
       saveArticle,
