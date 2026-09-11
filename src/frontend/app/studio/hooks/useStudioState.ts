@@ -19,7 +19,6 @@ import {
   getNextStageId,
   getStageAction,
   studioStageIds,
-  type WorkflowCommandFor,
   type WorkflowCommand,
   type StageArtifactMap,
   type StudioStageId,
@@ -42,12 +41,22 @@ export function useStudioState(): StudioController {
     agentResetRef, skipNextSaveRef, registerAgentReset,
   } = useStudioProgressState();
   const [stageCompletion, setStageCompletion] = useState<Partial<Record<StudioStageId, boolean>>>({});
+  const [stageArtifacts, setStageArtifacts] = useState<Partial<{ [K in StudioStageId]: StageArtifactMap[K] }>>({});
   const externallyBusyRef = useRef(false);
   const activeStep = studioSteps.find((step) => step.id === ui.activeWorkspaceId) ?? studioSteps[0];
   externallyBusyRef.current = agentRunning || agentDraftActive;
   const activeStageComplete = stageCompletion[ui.activeWorkspaceId] ?? false;
+  const activeStageArtifact = stageArtifacts[ui.activeWorkspaceId] ?? workflow.stages[ui.activeWorkspaceId].artifact;
+  const activeStage = activeStageArtifact === null
+    ? workflow.stages[ui.activeWorkspaceId]
+    : {
+      ...workflow.stages[ui.activeWorkspaceId],
+      artifact: activeStageArtifact,
+      generatedAt: workflow.stages[ui.activeWorkspaceId].generatedAt ?? "draft",
+      updatedAt: workflow.stages[ui.activeWorkspaceId].updatedAt ?? "draft",
+    };
   const stageAction = progressHydrated
-    ? getStageAction(workflow.stages[ui.activeWorkspaceId], agentRunning, true, activeStageComplete)
+    ? getStageAction(activeStage, agentRunning, true, activeStageComplete)
     : { kind: "blocked" as const, label: "下一步" as const, hint: "正在恢复上次进度。" };
 
   useEffect(() => {
@@ -109,6 +118,7 @@ export function useStudioState(): StudioController {
   function applyProgress(progress: StudioProgressSnapshot) {
     skipNextSaveRef.current = true;
     setWorkflow(progress.workflow);
+    setStageArtifacts({});
     setAgentMessages(progress.agentMessages as Record<string, AgentMessage[]>);
     setAgentMessagesRestoreKey((current) => current + 1);
     setUi((current) => ({ ...current, activeWorkspaceId: progress.activeWorkspaceId }));
@@ -129,31 +139,21 @@ export function useStudioState(): StudioController {
   }
 
   function getStageArtifact<K extends StudioStageId>(stageId: K): StageArtifactMap[K] | null {
-    return workflow.stages[stageId].artifact;
+    return stageArtifacts[stageId] ?? workflow.stages[stageId].artifact;
   }
 
-  function reportStageComplete(stageId: StudioStageId, complete: boolean) {
+  function reportStageArtifact<K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K] | null, complete: boolean) {
+    setStageArtifacts((current) => {
+      if (artifact === null) {
+        if (!(stageId in current)) return current;
+        const next = { ...current };
+        delete next[stageId];
+        return next;
+      }
+      if (current[stageId] === artifact) return current;
+      return { ...current, [stageId]: artifact };
+    });
     setStageCompletion((current) => current[stageId] === complete ? current : { ...current, [stageId]: complete });
-  }
-
-  function updateStageArtifact<K extends StudioStageId>(stageId: K, patch: Partial<StageArtifactMap[K]>) {
-    const command: WorkflowCommandFor<K> = { type: "update-artifact", stageId, patch, updatedAt: new Date().toISOString() };
-    const result = executeWorkflowCommand(workflow, command as WorkflowCommand);
-    if (!result.ok) {
-      notify(result.reason === "stage-not-editable" ? "当前阶段已确认，请先重置后再修改" : "当前写作工作流已完成");
-      return false;
-    }
-    setWorkflow(result.workflow);
-    return true;
-  }
-
-  function generateStageArtifact<K extends StudioStageId>(stageId: K, artifact: StageArtifactMap[K]) {
-    const command: WorkflowCommandFor<K> = { type: "propose-artifact", stageId, artifact, updatedAt: new Date().toISOString() };
-    const result = executeWorkflowCommand(workflow, command as WorkflowCommand);
-    if (!result.ok) return false;
-    setWorkflow(result.workflow);
-    notify("候选阶段产物已生成，可以继续修正");
-    return true;
   }
 
   function getAgentMessages(agentId: string) {
@@ -190,7 +190,11 @@ export function useStudioState(): StudioController {
 
   function runStageAction() {
     const stageId = ui.activeWorkspaceId;
-    const action = getStageAction(workflow.stages[stageId], agentRunning, true, stageCompletion[stageId] ?? false);
+    const artifact = getStageArtifact(stageId);
+    const stage = artifact === null
+      ? workflow.stages[stageId]
+      : { ...workflow.stages[stageId], artifact, generatedAt: workflow.stages[stageId].generatedAt ?? "draft", updatedAt: workflow.stages[stageId].updatedAt ?? "draft" };
+    const action = getStageAction(stage, agentRunning, true, stageCompletion[stageId] ?? false);
     if (action.kind === "completed") {
       const nextStageId = getNextStageId(stageId);
       if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
@@ -206,13 +210,22 @@ export function useStudioState(): StudioController {
     }
 
     const description = stageId === "idea-capture"
-      ? describeWritingIntent(workflow.stages["idea-capture"].artifact)
+      ? describeWritingIntent(artifact as StageArtifactMap["idea-capture"] | null)
       : `确认后，${activeStep.title}阶段将锁定并进入下一阶段。`;
     requestConfirmation(`确认${activeStep.title}并进入下一阶段`, description, () => acceptCurrentStage(stageId));
   }
 
   function acceptCurrentStage(stageId: StudioStageId) {
-    const result = executeWorkflowCommand(workflow, {
+    const artifact = getStageArtifact(stageId);
+    if (artifact === null) return false;
+    const proposal = executeWorkflowCommand(workflow, {
+      type: "propose-artifact",
+      stageId,
+      artifact,
+      updatedAt: new Date().toISOString(),
+    } as WorkflowCommand);
+    if (!proposal.ok) return false;
+    const result = executeWorkflowCommand(proposal.workflow, {
       type: "accept-stage",
       stageId,
       complete: stageCompletion[stageId] ?? false,
@@ -231,6 +244,11 @@ export function useStudioState(): StudioController {
       setSaveWarning("进度保存失败，尚未进入下一阶段");
       return false;
     }
+    setStageArtifacts((current) => {
+      const next = { ...current };
+      delete next[stageId];
+      return next;
+    });
     setWorkflow(acceptedWorkflow);
     if (nextStageId) setUi((current) => ({ ...current, activeWorkspaceId: nextStageId }));
     notify(nextStageId ? "当前阶段已确认，已进入下一阶段" : "文章配图已确认，可以保存文章");
@@ -259,6 +277,11 @@ export function useStudioState(): StudioController {
     if (!result.ok) return;
     const nextAgentMessages = Object.fromEntries(Object.entries(agentMessages).filter(([agentId]) => !resetAgentIds.has(agentId)));
     if (!persistProgress(result.workflow, stageId, nextAgentMessages)) return;
+    setStageArtifacts((current) => {
+      const next = { ...current };
+      studioStageIds.slice(resetIndex).forEach((id) => delete next[id]);
+      return next;
+    });
     setAgentMessages(nextAgentMessages);
     triggerResetSignal();
     setWorkflow(result.workflow);
@@ -305,6 +328,7 @@ export function useStudioState(): StudioController {
     if (workflow.status !== "completed") return;
     const nextWorkflow = createInitialWorkflow();
     if (!persistProgress(nextWorkflow, "idea-capture", {})) return;
+    setStageArtifacts({});
     setWorkflow(nextWorkflow);
     setAgentMessages({});
     triggerResetSignal();
@@ -326,11 +350,9 @@ export function useStudioState(): StudioController {
     workflow: {
       snapshot: workflow,
       stageAction,
-      reportStageComplete,
+      reportStageArtifact,
       articleSaved: workflow.status === "completed",
       getStageArtifact,
-      updateStageArtifact,
-      generateStageArtifact,
       runStageAction,
       resetStage,
       saveArticle,

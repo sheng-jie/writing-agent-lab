@@ -1,21 +1,42 @@
 "use client";
 
+import { useFrontendTool } from "@copilotkit/react-core/v2";
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
+import { stageArtifactSchemas } from "../../workflow/studio-artifact-schemas";
 import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
 import { canAcceptDrafting } from "./drafting.rules";
-import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
+import type { DraftArtifact } from "../../workflow/studio-workflow";
 
 export function DraftingWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"drafting"> }) {
+  const [artifact, setDraftArtifact] = useState(workspace.artifact);
+
   useEffect(() => {
-    workspace.reportComplete(canAcceptDrafting(workspace.artifact));
-  }, [workspace]);
+    workspace.reportArtifact(artifact, canAcceptDrafting(artifact));
+  }, [artifact, workspace]);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 
   useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
+
+  useFrontendTool(
+    {
+      name: "generateArticleDraft",
+      agentId,
+      description: "Generate the complete first draft.",
+      parameters: stageArtifactSchemas.drafting,
+      handler: async (generatedArtifact: DraftArtifact) => {
+        setDraftArtifact(generatedArtifact);
+        return {
+          ok: true,
+        stage: workspace.step.title,
+        };
+      },
+    },
+    [agentId, workspace],
+  );
 
   return (
     <>
@@ -49,7 +70,6 @@ export function DraftingWorkspace({ workspace }: { workspace: StageWorkspaceAdap
         onDraftChange={workspace.agent.setDraftActive}
         restoreKey={workspace.agent.restoreKey}
       >
-        <StudioStepCopilotTools workspace={workspace} />
       </AgentPanel>
     </>
   );

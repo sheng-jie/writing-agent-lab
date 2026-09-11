@@ -84,8 +84,7 @@ export type StageAction =
   | { kind: "completed"; label: "下一步"; hint: string };
 
 export type WorkflowCommandFor<K extends StudioStageId> =
-  | { type: "propose-artifact"; stageId: K; artifact: StageArtifactMap[K]; updatedAt: string }
-  | { type: "update-artifact"; stageId: K; patch: Partial<StageArtifactMap[K]>; updatedAt: string };
+  { type: "propose-artifact"; stageId: K; artifact: StageArtifactMap[K]; updatedAt: string };
 
 export type WorkflowCommand =
   | { [K in StudioStageId]: WorkflowCommandFor<K> }[StudioStageId]
@@ -146,15 +145,6 @@ export function executeWorkflowCommand(
         ok: true,
         workflow: proposeStageArtifact(workflow, command.stageId, command.artifact, command.updatedAt),
       };
-    case "update-artifact":
-      if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
-      if (workflow.stages[command.stageId].status === "accepted") {
-        return { ok: false, reason: "stage-not-editable" };
-      }
-      return {
-        ok: true,
-        workflow: updateStageArtifactDraft(workflow, command.stageId, command.patch, command.updatedAt),
-      };
     case "accept-stage": {
       if (workflow.status === "completed") return { ok: false, reason: "workflow-completed" };
       const stage = workflow.stages[command.stageId];
@@ -212,28 +202,6 @@ function resetWorkflowFromStage(workflow: WritingWorkflowSnapshot, stageId: Stud
         return [id, createStageRecord(id === stageId ? "in-progress" : "pending")];
       }),
     ) as WritingWorkflowSnapshot["stages"],
-  };
-}
-
-function updateStageArtifactDraft<K extends StudioStageId>(
-  workflow: WritingWorkflowSnapshot,
-  stageId: K,
-  patch: Partial<StageArtifactMap[K]>,
-  updatedAt: string,
-): WritingWorkflowSnapshot {
-  const stage = workflow.stages[stageId];
-  if (workflow.status === "completed" || stage.status === "accepted") return workflow;
-
-  return {
-    ...workflow,
-    stages: {
-      ...workflow.stages,
-      [stageId]: {
-        ...stage,
-        artifact: { ...stage.artifact, ...patch },
-        updatedAt,
-      },
-    } as WritingWorkflowSnapshot["stages"],
   };
 }
 

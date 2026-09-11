@@ -16,15 +16,16 @@ import { canAcceptWritingIntent } from "./ideaCapture.rules";
 export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"idea-capture"> }) {
   const [updatedCards, setUpdatedCards] = useState<Set<string>>(new Set());
   const agentPanelRef = useRef<AgentPanelRef>(null);
-  const writingIntent = workspace.artifact ?? emptyWritingIntent;
-  const phase = workspace.stage.generatedAt !== null
+  const [writingIntent, setWritingIntent] = useState<WritingIntentDraft | null>(workspace.artifact);
+  const currentWritingIntent = writingIntent ?? emptyWritingIntent;
+  const phase = writingIntent !== null && canAcceptWritingIntent(writingIntent)
     ? "card"
-    : hasWritingIntent(writingIntent) ? "identifying" : "initial";
+    : hasWritingIntent(currentWritingIntent) ? "identifying" : "initial";
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
-    workspace.reportComplete(canAcceptWritingIntent(workspace.artifact));
-  }, [workspace]);
+    workspace.reportArtifact(writingIntent, canAcceptWritingIntent(writingIntent));
+  }, [writingIntent, workspace]);
 
   useEffect(() => {
     return workspace.agent.registerReset(() => agentPanelRef.current?.reset());
@@ -52,11 +53,11 @@ export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceA
   const ideaCaptureController: IdeaCaptureState = {
     phase,
     editable: !workspace.readOnly,
-    writingIntent,
+    writingIntent: currentWritingIntent,
     updatedCards,
     notify: workspace.notify,
     updateWritingIntent: (patch) => {
-      if (!workspace.updateArtifact(patch)) return [];
+      setWritingIntent({ ...currentWritingIntent, ...patch });
       const changedCards = Object.keys(patch).flatMap((key) => {
         const cardByField: Record<string, string> = {
           rawIdea: "raw",
@@ -73,8 +74,8 @@ export function IdeaCaptureWorkspace({ workspace }: { workspace: StageWorkspaceA
       workspace.notify(changedCards.length ? "已同步更新写作意图" : "写作意图已检查");
       return changedCards;
     },
-    proposeWritingIntent: (candidate) => workspace.generateArtifact({
-      ...writingIntent,
+    proposeWritingIntent: (candidate) => setWritingIntent({
+      ...currentWritingIntent,
       ...candidate,
     }),
   };

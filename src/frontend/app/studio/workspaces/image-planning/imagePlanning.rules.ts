@@ -1,5 +1,6 @@
 import type { ImagePlanningArtifact } from "../../workflow/studio-workflow";
+import type { StageArtifactRule } from "../stage-artifact-rule";
 
-export function canAcceptImagePlanning(artifact: ImagePlanningArtifact | null) {
+export const canAcceptImagePlanning: StageArtifactRule<ImagePlanningArtifact> = (artifact) => {
   return artifact !== null && artifact.title.trim().length > 0 && artifact.content.trim().length > 0;
-}
+};

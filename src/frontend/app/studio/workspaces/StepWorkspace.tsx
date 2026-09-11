@@ -12,28 +12,24 @@ type WorkspaceProps = { controller: StudioController };
 export function StepWorkspace({ controller }: WorkspaceProps) {
   const stageId = controller.workspace.activeWorkspaceId;
   const workspaceResetKey = `${stageId}:${controller.progress.resetKey}`;
-  const reportComplete = (complete: boolean) => {
-    controller.workflow.reportStageComplete(stageId, complete);
-  };
-
   // 仅由工作台统一发起的重置信号触发工作区重挂载，避免状态变化与重置语义分散。
   switch (stageId) {
     case "idea-capture":
       return (
         <IdeaCaptureWorkspace
           key={workspaceResetKey}
-          workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)}
+          workspace={createStageWorkspaceAdapter(controller, stageId)}
         />
       );
     case "topic-generation":
-      return <TopicGenerationWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)} />;
+      return <TopicGenerationWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;
     case "outline-planning":
-      return <OutlinePlanningWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)} />;
+      return <OutlinePlanningWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;
     case "drafting":
-      return <DraftingWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)} />;
+      return <DraftingWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;
     case "polishing":
-      return <PolishingWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)} />;
+      return <PolishingWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;
     case "image-planning":
-      return <ImagePlanningWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId, reportComplete)} />;
+      return <ImagePlanningWorkspace key={workspaceResetKey} workspace={createStageWorkspaceAdapter(controller, stageId)} />;
   }
 }

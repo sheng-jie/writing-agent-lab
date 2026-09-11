@@ -1,23 +1,42 @@
 "use client";
 
+import { useFrontendTool } from "@copilotkit/react-core/v2";
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { stageArtifactSchemas } from "../../workflow/studio-artifact-schemas";
 import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
-import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
+import type { TopicGenerationArtifact } from "../../workflow/studio-workflow";
 import { canAcceptTopicGeneration } from "./topicGeneration.rules";
 
 export function TopicGenerationWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"topic-generation"> }) {
+  const [artifact, setDraftArtifact] = useState(workspace.artifact);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
-  const artifact = workspace.artifact;
   const readOnly = workspace.readOnly;
 
   useEffect(() => {
-    workspace.reportComplete(canAcceptTopicGeneration(workspace.artifact));
-  }, [workspace]);
+    workspace.reportArtifact(artifact, canAcceptTopicGeneration(artifact));
+  }, [artifact, workspace]);
 
   useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
+
+  useFrontendTool(
+    {
+      name: "generateTopicCandidates",
+      agentId,
+      description: "Generate the complete topic candidate list. Leave selectedCandidateId empty until the user chooses.",
+      parameters: stageArtifactSchemas["topic-generation"],
+      handler: async (generatedArtifact: TopicGenerationArtifact) => {
+        setDraftArtifact(generatedArtifact);
+        return {
+          ok: true,
+        stage: workspace.step.title,
+        };
+      },
+    },
+    [agentId, workspace],
+  );
 
   return (
     <>
@@ -47,7 +66,7 @@ export function TopicGenerationWorkspace({ workspace }: { workspace: StageWorksp
                           name="selected-topic"
                           value={candidate.id}
                           checked={selected}
-                          onChange={() => workspace.updateArtifact({ selectedCandidateId: candidate.id })}
+                          onChange={() => artifact && setDraftArtifact({ ...artifact, selectedCandidateId: candidate.id })}
                           className="mt-1 size-4 accent-[var(--teal)]"
                         />
                         <span className="grid gap-1">
@@ -101,7 +120,6 @@ export function TopicGenerationWorkspace({ workspace }: { workspace: StageWorksp
         onDraftChange={workspace.agent.setDraftActive}
         restoreKey={workspace.agent.restoreKey}
       >
-        <StudioStepCopilotTools workspace={workspace} />
       </AgentPanel>
     </>
   );

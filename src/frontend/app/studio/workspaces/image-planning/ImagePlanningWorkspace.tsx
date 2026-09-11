@@ -1,22 +1,43 @@
 "use client";
 
+import { useFrontendTool } from "@copilotkit/react-core/v2";
 import { AgentPanel } from "@/components/agent/AgentPanel";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { StepWorkspacePlaceholder } from "../StepWorkspacePlaceholder";
 
 import type { StageWorkspaceAdapter } from "../stageWorkspace.adapter";
 import { canAcceptImagePlanning } from "./imagePlanning.rules";
-import { StudioStepCopilotTools } from "../StudioStepCopilotTools";
+import { stageArtifactSchemas } from "../../workflow/studio-artifact-schemas";
+import type { ImagePlanningArtifact } from "../../workflow/studio-workflow";
 
 export function ImagePlanningWorkspace({ workspace }: { workspace: StageWorkspaceAdapter<"image-planning"> }) {
+  const [artifact, setDraftArtifact] = useState(workspace.artifact);
+
   useEffect(() => {
-    workspace.reportComplete(canAcceptImagePlanning(workspace.artifact));
-  }, [workspace]);
+    workspace.reportArtifact(artifact, canAcceptImagePlanning(artifact));
+  }, [artifact, workspace]);
   const agentId = workspace.agentId;
   const agentPanelRef = useRef<import("@/components/agent/AgentPanel").AgentPanelRef>(null);
 
   useEffect(() => workspace.agent.registerReset(() => agentPanelRef.current?.reset()), [workspace]);
+
+  useFrontendTool(
+    {
+      name: "generateIllustratedDraft",
+      agentId,
+      description: "Generate the complete illustrated draft with final title, content, and illustration plan.",
+      parameters: stageArtifactSchemas["image-planning"],
+      handler: async (generatedArtifact: ImagePlanningArtifact) => {
+        setDraftArtifact(generatedArtifact);
+        return {
+          ok: true,
+        stage: workspace.step.title,
+        };
+      },
+    },
+    [agentId, workspace],
+  );
 
   return (
     <>
@@ -50,7 +71,6 @@ export function ImagePlanningWorkspace({ workspace }: { workspace: StageWorkspac
         onDraftChange={workspace.agent.setDraftActive}
         restoreKey={workspace.agent.restoreKey}
       >
-        <StudioStepCopilotTools workspace={workspace} />
       </AgentPanel>
     </>
   );
